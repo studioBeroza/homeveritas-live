@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Homeveritas Live-Messung</title>
+<style>
+:root{--bg:#0b0b12;--card:#15151f;--line:#2a2a38;--ink:#f2f0ea;--ink2:#a9a69c;--g:#39ff88;--o:#f26a1b;--p:#ff3df0;--bad:#ff5a4d;--warn:#ffd23d}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans Georgian",sans-serif;padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:640px;margin:0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0 6px}
+.wm{font:800 1.15rem/1 system-ui;letter-spacing:.03em}.wm b:first-child{color:var(--g)}.wm b:last-child{color:var(--p)}
+select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit}
+h1{font-size:1.5rem;margin:10px 0 4px}p{margin:6px 0}.muted{color:var(--ink2);font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.btn{appearance:none;border:0;border-radius:10px;padding:12px 16px;font:700 1rem system-ui;min-height:46px;cursor:pointer;background:var(--g);color:#0b0b12}
+.btn.o{background:var(--o)}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}.btn:disabled{opacity:.45;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.acc{display:flex;align-items:center;gap:12px}
+.dot{width:16px;height:16px;border-radius:50%;background:var(--ink2);flex:none}
+.big{font:800 2rem/1 system-ui}
+.coord{font:600 .95rem ui-monospace,Menlo,monospace;color:var(--ink2);overflow-wrap:anywhere}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;width:0;background:var(--g);transition:width .2s}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.f{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}.f span{display:block;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}.f b{font-size:1.25rem}
+canvas{width:100%;height:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px;display:block;margin:10px 0}
+.msg{padding:10px 12px;border-radius:10px;margin:10px 0;border:1px solid var(--line)}.msg.err{border-color:var(--bad);color:#ffb4ad}.msg.ok{border-color:var(--g)}.msg.warn{border-color:var(--warn)}
+ol{padding-left:22px;margin:8px 0}li{margin:4px 0;font:.9rem ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+label.in{display:block;margin:10px 0 0;font-size:.9rem;color:var(--ink2)}input[type=number]{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="wm"><b>HOME</b> <b>VERITAS</b></div><select id="lang" aria-label="Language"><option value="de">Deutsch</option><option value="en">English</option><option value="ka">ქართული</option></select></header>
+<h1 id="t-title"></h1><p class="muted" id="t-sub"></p>
+
+<section class="card">
+  <div class="acc"><span class="dot" id="dot"></span><div><div class="big" id="acc">–</div><div class="muted" id="accn"></div></div></div>
+  <p class="coord" id="pos"></p>
+  <div class="row"><button class="btn" id="start"></button><button class="btn ghost" id="stop" hidden></button></div>
+  <div class="msg err" id="err" hidden></div>
+</section>
+
+<section class="card">
+  <h2 id="t-pts" style="margin:0 0 6px;font-size:1.1rem"></h2>
+  <p class="muted" id="t-how"></p>
+  <label class="in"><span id="t-avg"></span><input id="avg" type="number" min="3" max="60" step="1" value="10"></label>
+  <div class="row" style="margin-top:12px"><button class="btn o" id="add" disabled></button><button class="btn ghost" id="undo"></button><button class="btn ghost" id="clear"></button></div>
+  <div class="bar" id="barw" hidden><i id="bar"></i></div>
+  <label class="in"><input type="checkbox" id="auto"> <span id="t-auto"></span></label>
+  <label class="in" id="stepw" hidden><span id="t-step"></span><input id="step" type="number" min="1" max="50" step="1" value="5"></label>
+  <ol id="list"></ol>
+</section>
+
+<section class="card" id="res" hidden>
+  <h2 id="t-res" style="margin:0 0 6px;font-size:1.1rem"></h2>
+  <div class="grid" id="facts"></div>
+  <div class="msg" id="warn" hidden></div>
+  <canvas id="cv" width="640" height="460"></canvas>
+  <div class="row"><button class="btn" id="copy"></button><button class="btn ghost" id="gpx">GPX</button><button class="btn ghost" id="gj">GeoJSON</button><button class="btn ghost" id="csv">CSV</button><button class="btn ghost" id="share" hidden></button></div>
+  <div class="msg ok" id="ok" hidden></div>
+</section>
+
+<p class="muted" id="t-legal"></p>
+</div>
+<script>
+(function(){
+'use strict';
+var R=6371008.8,FT2=10.763910417;
+var T={
+de:{title:'Live-Messung per GPS',sub:'Gehen Sie Ihr Grundstück ab und setzen Sie an jeder Ecke einen Punkt. Das Telefon berechnet Fläche und Umfang. Die Positionen bleiben auf Ihrem Gerät.',
+ start:'GPS starten',stop:'GPS stoppen',wait:'Warte auf Signal …',acc:'Genauigkeit',good:'sehr gut',ok:'brauchbar',poor:'zu ungenau, ins Freie gehen',
+ pts:'Eckpunkte',how:'Stellen Sie sich genau an die Ecke, halten Sie das Telefon ruhig und tippen Sie auf „Punkt setzen“. Das Gerät mittelt die Messwerte einige Sekunden.',avg:'Mittelungszeit (Sekunden)',add:'Punkt setzen',undo:'Letzten entfernen',clear:'Leeren',
+ auto:'Auto-Spur: beim Gehen automatisch Punkte setzen',step:'Abstand zwischen Punkten (m)',res:'Ergebnis',area:'Fläche',perim:'Umfang',unc:'Unsicherheit',pn:'Punkte',sqft:'Quadratfuß',ar:'Ar',ha:'Hektar',
+ copy:'Koordinaten kopieren (für Homeveritas)',copied:'Kopiert. In Homeveritas bei „Grundstück“ einfügen.',copyFail:'Kopieren nicht möglich.',share:'Teilen',
+ wCross:'Die Linie kreuzt sich. Gehen Sie die Ecken der Reihe nach ab.',wWeak:'Unsicherheit über 10 % der Fläche. Das ist nur eine grobe Schätzung. Messen Sie bei besserem Empfang erneut.',wNeed:'Mindestens 3 Punkte nötig.',
+ eDenied:'Standortzugriff wurde abgelehnt. Erlauben Sie ihn in den Browser-Einstellungen für diese Seite.',eUnavail:'Kein Positionssignal. Gehen Sie ins Freie.',eTimeout:'Zeitüberschreitung beim Ortungssignal.',eNone:'Dieses Gerät oder dieser Browser unterstützt keine Ortung.',eSecure:'Ortung funktioniert nur über HTTPS.',eSamples:'Keine brauchbaren Messwerte. Warten Sie auf besseres Signal.',
+ legal:'Nur zur Orientierung. Rechtlich zählt allein die amtliche Vermessung (Kataster, Grundbuch). Handy-GPS ist im Freien meist auf 3 bis 5 m genau, an Mauern und unter Bäumen schlechter.',m:'m'},
+en:{title:'Live GPS measuring',sub:'Walk the boundary of your plot and set a point at each corner. Your phone calculates the area and perimeter. Positions stay on your device.',
+ start:'Start GPS',stop:'Stop GPS',wait:'Waiting for signal …',acc:'Accuracy',good:'very good',ok:'usable',poor:'too inaccurate, go outdoors',
+ pts:'Corner points',how:'Stand exactly on the corner, hold the phone still and tap “Set point”. The device averages readings for a few seconds.',avg:'Averaging time (seconds)',add:'Set point',undo:'Remove last',clear:'Clear',
+ auto:'Auto track: add points automatically while walking',step:'Distance between points (m)',res:'Result',area:'Area',perim:'Perimeter',unc:'Uncertainty',pn:'Points',sqft:'square feet',ar:'are',ha:'hectares',
+ copy:'Copy coordinates (for Homeveritas)',copied:'Copied. Paste it into Homeveritas under “Plot”.',copyFail:'Copying is not possible.',share:'Share',
+ wCross:'The line crosses itself. Walk the corners in order.',wWeak:'Uncertainty over 10% of the area. This is only a rough estimate. Measure again with better reception.',wNeed:'At least 3 points are needed.',
+ eDenied:'Location access was denied. Allow it in the browser settings for this page.',eUnavail:'No position signal. Go outdoors.',eTimeout:'Timed out waiting for a position.',eNone:'This device or browser does not support positioning.',eSecure:'Positioning only works over HTTPS.',eSamples:'No usable readings. Wait for a better signal.',
+ legal:'For guidance only. Legally only the official survey (cadastre, land register) counts. Phone GPS is usually accurate to 3 to 5 m in the open, worse near walls and under trees.',m:'m'},
+ka:{title:'GPS-ით გაზომვა ადგილზე',sub:'შემოიარეთ ნაკვეთის საზღვარი და ყოველ კუთხეში დააყენეთ წერტილი. ტელეფონი გამოთვლის ფართობს და პერიმეტრს. პოზიციები თქვენს მოწყობილობაზე რჩება.',
+ start:'GPS-ის ჩართვა',stop:'GPS-ის გამორთვა',wait:'სიგნალს ველოდებით …',acc:'სიზუსტე',good:'ძალიან კარგი',ok:'გამოსადეგი',poor:'ძალიან არაზუსტია, გახვედით გარეთ',
+ pts:'კუთხის წერტილები',how:'დადექით ზუსტად კუთხეში, ტელეფონი უძრავად დაიჭირეთ და დააჭირეთ „წერტილის დაყენებას“. მოწყობილობა რამდენიმე წამს ზომავს და ითვლის საშუალოს.',avg:'გასაშუალოების დრო (წამი)',add:'წერტილის დაყენება',undo:'ბოლოს წაშლა',clear:'გასუფთავება',
+ auto:'ავტო-ტრეკი: სიარულისას წერტილები თავად დაემატოს',step:'მანძილი წერტილებს შორის (მ)',res:'შედეგი',area:'ფართობი',perim:'პერიმეტრი',unc:'ცდომილება',pn:'წერტილები',sqft:'კვადრატული ფუტი',ar:'არი',ha:'ჰექტარი',
+ copy:'კოორდინატების კოპირება (Homeveritas-ისთვის)',copied:'დაკოპირდა. ჩასვით Homeveritas-ში „ნაკვეთის“ ველში.',copyFail:'კოპირება შეუძლებელია.',share:'გაზიარება',
+ wCross:'ხაზი თავის თავს კვეთს. კუთხეები თანმიმდევრობით შემოიარეთ.',wWeak:'ცდომილება ფართობის 10%-ზე მეტია. ეს მხოლოდ უხეში შეფასებაა. გაზომეთ თავიდან უკეთესი სიგნალით.',wNeed:'საჭიროა მინიმუმ 3 წერტილი.',
+ eDenied:'მდებარეობაზე წვდომა უარყოფილია. ბრაუზერის პარამეტრებში ამ გვერდისთვის ჩართეთ.',eUnavail:'პოზიციის სიგნალი არ არის. გახვედით გარეთ.',eTimeout:'პოზიციის ლოდინის დრო ამოიწურა.',eNone:'ეს მოწყობილობა ან ბრაუზერი მდებარეობას არ უჭერს მხარს.',eSecure:'მდებარეობა მხოლოდ HTTPS-ზე მუშაობს.',eSamples:'გამოსადეგი გაზომვები არ არის. დაელოდეთ უკეთეს სიგნალს.',
+ legal:'მხოლოდ საორიენტაციოა. იურიდიულად მხოლოდ ოფიციალური აზომვა (კადასტრი, რეესტრი) მნიშვნელობს. ტელეფონის GPS ღია ადგილას ჩვეულებრივ 3-5 მ სიზუსტისაა, კედლებთან და ხეების ქვეშ უარესი.',m:'მ'}
+};
+var LOC={de:'de-DE',en:'en-GB',ka:'ka-GE'};
+var $=function(i){return document.getElementById(i)};
+var lang='de';try{var sl=localStorage.getItem('hv-live-lang');lang=sl||((navigator.language||'').slice(0,2)==='ka'?'ka':(navigator.language||'').slice(0,2)==='de'?'de':'en')}catch(e){}
+var pts=[],last=null,wid=null,sampling=null,res=null;
+try{var sv=JSON.parse(localStorage.getItem('hv-live-pts')||'[]');if(Array.isArray(sv))pts=sv.filter(function(p){return isFinite(p.lat)&&isFinite(p.lon)})}catch(e){}
+function save(){try{localStorage.setItem('hv-live-pts',JSON.stringify(pts))}catch(e){}}
+function t(k){return (T[lang]||T.en)[k]||T.en[k]||k}
+function fmt(n,d){try{return n.toLocaleString(LOC[lang]||'en-GB',{minimumFractionDigits:d,maximumFractionDigits:d})}catch(e){return n.toFixed(d)}}
+function show(id,txt,hide){var e=$(id);e.textContent=txt||'';e.hidden=!txt||!!hide}
+function applyLang(){
+  document.documentElement.lang=lang;$('lang').value=lang;
+  [['t-title','title'],['t-sub','sub'],['t-pts','pts'],['t-how','how'],['t-avg','avg'],['t-auto','auto'],['t-step','step'],['t-res','res'],['t-legal','legal'],['add','add'],['undo','undo'],['clear','clear'],['copy','copy'],['share','share'],['stop','stop']].forEach(function(p){$(p[0]).textContent=t(p[1])});
+  $('start').textContent=wid!==null?t('wait'):t('start');document.title='Homeveritas · '+t('title');
+  updAcc();render();
+}
+/* Geometrie */
+function dist(a,b){var p=Math.PI/180,dl=(b.lat-a.lat)*p,dn=(b.lon-a.lon)*p,x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(x))}
+function project(ps){var la=0,lo=0;ps.forEach(function(p){la+=p.lat;lo+=p.lon});la/=ps.length;lo/=ps.length;var c=Math.cos(la*Math.PI/180),k=Math.PI/180*R;return ps.map(function(p){return{x:(p.lon-lo)*k*c,y:(p.lat-la)*k}})}
+function segX(a,b,c,d){function o(p,q,r){return(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x)}return o(a,b,c)*o(a,b,d)<0&&o(c,d,a)*o(c,d,b)<0}
+function analyse(ps){
+  var P=project(ps),n=P.length,A=0,L=0,v=0,sides=[],i,j,accs=0;
+  for(i=0;i<n;i++){j=(i+1)%n;A+=P[i].x*P[j].y-P[j].x*P[i].y;var d=Math.hypot(P[j].x-P[i].x,P[j].y-P[i].y);sides.push(d);L+=d;var h=(i+n-1)%n,dd=Math.hypot(P[j].x-P[h].x,P[j].y-P[h].y);v+=dd*dd;accs+=ps[i].acc||5}
+  A=Math.abs(A)/2;var acc=Math.max(accs/n,0.5),cross=false;
+  for(i=0;i<n&&!cross;i++)for(j=i+2;j<n;j++){if(i===0&&j===n-1)continue;if(segX(P[i],P[(i+1)%n],P[j],P[(j+1)%n])){cross=true;break}}
+  return{P:P,A:A,L:L,sides:sides,sig:(acc/2)*Math.sqrt(v),cross:cross,acc:acc};
+}
+/* Ortung */
+function err(k){show('err',t(k))}
+function updAcc(){
+  var a=last?last.coords.accuracy:null,d=$('dot');
+  if(a==null){$('acc').textContent='–';$('accn').textContent=wid!==null?t('wait'):'';d.style.background='var(--ink2)';$('pos').textContent='';return}
+  $('acc').textContent='± '+fmt(a,0)+' '+t('m');
+  var q=a<=5?'good':a<=12?'ok':'poor';$('accn').textContent=t('acc')+': '+t(q);d.style.background=q==='good'?'var(--g)':q==='ok'?'var(--warn)':'var(--bad)';
+  $('pos').textContent=last.coords.latitude.toFixed(7)+', '+last.coords.longitude.toFixed(7);
+}
+function onPos(p){
+  last=p;show('err','');updAcc();$('add').disabled=!!sampling;
+  if(sampling)sampling.push(p);
+  if($('auto').checked&&!sampling&&p.coords.accuracy<=Math.max(15,0)){
+    var step=Math.max(1,+$('step').value||5),lp=pts[pts.length-1],c={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
+    if(!lp||dist(lp,c)>=step){pts.push(c);save();render()}
+  }
+}
+function onErr(e){
+  var k=e&&e.code===1?'eDenied':e&&e.code===3?'eTimeout':'eUnavail';err(k);
+  if(e&&e.code===1){stop()}
+}
+function start(){
+  if(!navigator.geolocation){err('eNone');return}
+  if(!window.isSecureContext){err('eSecure');return}
+  show('err','');
+  wid=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+  $('start').hidden=true;$('stop').hidden=false;updAcc();
+  try{if(navigator.wakeLock)navigator.wakeLock.request('screen').then(function(l){window._wl=l},function(){})}catch(e){}
+}
+function stop(){
+  if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null}
+  $('start').hidden=false;$('stop').hidden=true;$('start').textContent=t('start');$('add').disabled=true;
+  try{if(window._wl){window._wl.release();window._wl=null}}catch(e){}
+}
+function setPoint(){
+  if(!last){err('eUnavail');return}
+  var secs=Math.min(60,Math.max(3,+$('avg').value||10));sampling=[last];$('add').disabled=true;$('barw').hidden=false;
+  var t0=Date.now();
+  var iv=setInterval(function(){var f=Math.min(1,(Date.now()-t0)/(secs*1000));$('bar').style.width=(f*100)+'%';
+    if(f>=1){clearInterval(iv);var s=sampling;sampling=null;$('barw').hidden=true;$('bar').style.width='0';$('add').disabled=wid===null;finish(s)}},200);
+}
+function finish(s){
+  var u=s.filter(function(p){return p.coords.accuracy<=40});if(!u.length){err('eSamples');return}
+  var sw=0,la=0,lo=0,ac=0;
+  u.forEach(function(p){var w=1/Math.pow(Math.max(p.coords.accuracy,1),2);sw+=w;la+=p.coords.latitude*w;lo+=p.coords.longitude*w;ac+=p.coords.accuracy});
+  pts.push({lat:la/sw,lon:lo/sw,acc:ac/u.length,n:u.length});save();render();
+}
+/* Darstellung */
+function render(){
+  var ol=$('list');ol.innerHTML='';
+  pts.forEach(function(p,i){var li=document.createElement('li');li.textContent=p.lat.toFixed(7)+', '+p.lon.toFixed(7)+'  ± '+fmt(p.acc||0,1)+' '+t('m');ol.appendChild(li)});
+  $('undo').disabled=!pts.length;$('clear').disabled=!pts.length;
+  if(pts.length<3){$('res').hidden=pts.length<1;res=null;if(pts.length){$('facts').innerHTML='';show('warn',t('wNeed'));$('warn').className='msg warn';$('cv').hidden=true;['copy','gpx','gj','csv','share'].forEach(function(i){$(i).disabled=true})}return}
+  ['copy','gpx','gj','csv','share'].forEach(function(i){$(i).disabled=false});$('cv').hidden=false;
+  res=analyse(pts);$('res').hidden=false;var A=res.A,rel=A>0?res.sig/A*100:100;
+  function f(k,v){return '<div class="f"><span>'+k+'</span><b>'+v+'</b></div>'}
+  $('facts').innerHTML=f(t('area'),fmt(A,A<100?1:0)+' m²')+f(t('sqft'),fmt(A*FT2,0))+f(t('ar')+' · '+t('ha'),fmt(A/100,2)+' · '+fmt(A/10000,4))+f(t('perim'),fmt(res.L,1)+' m')+f(t('unc'),'± '+fmt(res.sig,res.sig<10?1:0)+' m² ('+fmt(rel,1)+' %)')+f(t('pn'),String(pts.length));
+  var w=$('warn');if(res.cross){show('warn',t('wCross'));w.className='msg err'}else if(rel>10){show('warn',t('wWeak'));w.className='msg warn'}else{show('warn','')}
+  plot();
+}
+function plot(){
+  var cv=$('cv'),c=cv.getContext('2d'),W=cv.width,H=cv.height,pad=54,P=res.P,i;
+  c.clearRect(0,0,W,H);c.fillStyle='#0b0b12';c.fillRect(0,0,W,H);
+  var mnx=1e18,mxx=-1e18,mny=1e18,mxy=-1e18;P.forEach(function(p){mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mny=Math.min(mny,p.y);mxy=Math.max(mxy,p.y)});
+  var w=Math.max(mxx-mnx,1),h=Math.max(mxy-mny,1),sc=Math.min((W-2*pad)/w,(H-2*pad)/h),ox=W/2-(mnx+w/2)*sc,oy=H/2+(mny+h/2)*sc;
+  var X=function(p){return ox+p.x*sc},Y=function(p){return oy-p.y*sc};
+  c.beginPath();P.forEach(function(p,k){k?c.lineTo(X(p),Y(p)):c.moveTo(X(p),Y(p))});c.closePath();
+  c.fillStyle=res.cross?'rgba(255,90,77,.18)':'rgba(57,255,136,.16)';c.fill();c.strokeStyle=res.cross?'#ff5a4d':'#39ff88';c.lineWidth=3;c.lineJoin='round';c.stroke();
+  c.font='600 15px ui-monospace,Menlo,monospace';c.textAlign='center';
+  for(i=0;i<P.length;i++){var j=(i+1)%P.length,mx=(X(P[i])+X(P[j]))/2,my=(Y(P[i])+Y(P[j]))/2;if(P.length<=14){c.fillStyle='#f2f0ea';c.fillText(res.sides[i].toFixed(1),mx,my-8)}}
+  for(i=0;i<P.length&&P.length<=60;i++){c.fillStyle='#f26a1b';c.beginPath();c.arc(X(P[i]),Y(P[i]),10,0,7);c.fill();c.fillStyle='#0b0b12';c.font='700 12px system-ui';c.fillText(String(i+1),X(P[i]),Y(P[i])+4)}
+  var nice=[1,2,5,10,20,50,100,200,500,1000,2000,5000],sb=1;nice.forEach(function(n){if(n*sc<=W*.3)sb=n});
+  c.strokeStyle='#f2f0ea';c.lineWidth=2;c.beginPath();c.moveTo(20,H-22);c.lineTo(20+sb*sc,H-22);c.moveTo(20,H-28);c.lineTo(20,H-16);c.moveTo(20+sb*sc,H-28);c.lineTo(20+sb*sc,H-16);c.stroke();
+  c.fillStyle='#f2f0ea';c.textAlign='left';c.font='600 14px system-ui';c.fillText(sb+' m',20,H-32);
+  c.textAlign='center';c.beginPath();c.moveTo(W-28,18);c.lineTo(W-20,40);c.lineTo(W-28,35);c.lineTo(W-36,40);c.closePath();c.fill();c.fillText('N',W-28,58);
+}
+/* Export */
+function lines(){return pts.map(function(p){return p.lat.toFixed(7)+', '+p.lon.toFixed(7)}).join('\n')}
+function dl(name,mime,data){var b=new Blob([data],{type:mime}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500)}
+function gpx(){return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Homeveritas" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>Homeveritas</name><trkseg>\n'+pts.concat(pts.length?[pts[0]]:[]).map(function(p){return '<trkpt lat="'+p.lat.toFixed(7)+'" lon="'+p.lon.toFixed(7)+'"/>'}).join('\n')+'\n</trkseg></trk></gpx>\n'}
+function gj(){var c=pts.map(function(p){return[p.lon,p.lat]});c.push(c[0]);return JSON.stringify({type:'Feature',properties:{name:'Homeveritas',area_m2:Math.round(res.A*10)/10,perimeter_m:Math.round(res.L*10)/10},geometry:{type:'Polygon',coordinates:[c]}},null,2)}
+function csv(){return 'n,lat,lon,accuracy_m\n'+pts.map(function(p,i){return(i+1)+','+p.lat.toFixed(7)+','+p.lon.toFixed(7)+','+(p.acc||0).toFixed(1)}).join('\n')+'\n'}
+function say(id,txt){show('ok',txt)}
+$('start').addEventListener('click',start);$('stop').addEventListener('click',stop);$('add').addEventListener('click',setPoint);
+$('undo').addEventListener('click',function(){pts.pop();save();render()});$('clear').addEventListener('click',function(){pts=[];save();render();show('ok','')});
+$('auto').addEventListener('change',function(){$('stepw').hidden=!this.checked});
+$('lang').addEventListener('change',function(){lang=this.value;try{localStorage.setItem('hv-live-lang',lang)}catch(e){}applyLang()});
+$('copy').addEventListener('click',function(){var tx=lines();try{navigator.clipboard.writeText(tx).then(function(){say('ok',t('copied'))},function(){say('ok',t('copyFail'))})}catch(e){say('ok',t('copyFail'))}});
+$('gpx').addEventListener('click',function(){dl('homeveritas-flaeche.gpx','application/gpx+xml',gpx())});
+$('gj').addEventListener('click',function(){dl('homeveritas-flaeche.geojson','application/geo+json',gj())});
+$('csv').addEventListener('click',function(){dl('homeveritas-flaeche.csv','text/csv',csv())});
+if(navigator.share){$('share').hidden=false;$('share').addEventListener('click',function(){navigator.share({title:'Homeveritas',text:lines()}).catch(function(){})})}
+window.HVLIVE={_analyse:analyse,_pts:function(){return pts},_finish:finish};
+applyLang();
+})();
+</script>
+</body>
+</html>
