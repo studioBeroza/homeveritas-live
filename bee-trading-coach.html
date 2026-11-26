@@ -1,0 +1,668 @@
+<title>bee ტრეიდ-ასისტენტი</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a compact trading-desk tool. Sticky tab bar, one panel at a time, cards only for the working surfaces. */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#18202b; --muted:#5d6b7c; --line:#dbe1e9;
+  --accent:#c77a12; --accent-ink:#ffffff; --bull:#13866f; --bear:#cf4b3f;
+  --bull-soft:rgba(19,134,111,.14); --bear-soft:rgba(207,75,63,.14); --acc-soft:rgba(199,122,18,.13);
+  --chip:#eaeef4; --warn:#b5650a; --ok:#13866f; --bad:#c23b2f;
+  --font:"Noto Sans Georgian","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151c; --panel:#18202a; --ink:#e6ebf1; --muted:#93a1b2; --line:#2a3542;
+  --accent:#e8a23b; --accent-ink:#1a1206; --bull:#2fb894; --bear:#ef6b5e;
+  --bull-soft:rgba(47,184,148,.16); --bear-soft:rgba(239,107,94,.16); --acc-soft:rgba(232,162,59,.15);
+  --chip:#222c38; --warn:#e8a23b; --ok:#2fb894; --bad:#ef6b5e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151c; --panel:#18202a; --ink:#e6ebf1; --muted:#93a1b2; --line:#2a3542;
+  --accent:#e8a23b; --accent-ink:#1a1206; --bull:#2fb894; --bear:#ef6b5e;
+  --bull-soft:rgba(47,184,148,.16); --bear-soft:rgba(239,107,94,.16); --acc-soft:rgba(232,162,59,.15);
+  --chip:#222c38; --warn:#e8a23b; --ok:#2fb894; --bad:#ef6b5e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+header.top{padding-block:20px 8px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;justify-content:space-between}
+h1{font-size:1.35rem;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:1.15rem;margin:0 0 4px;text-wrap:balance}
+h3{font-size:1rem;margin:0}
+.sub{color:var(--muted);font-size:.88rem;margin:0}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin:8px 0 20px}
+.tabs .row{display:flex;gap:4px;overflow-x:auto;padding-block:8px;scrollbar-width:none}
+.tabs a{flex:none;text-decoration:none;color:var(--muted);padding:7px 12px;border-radius:8px;font-weight:500;font-size:.92rem;white-space:nowrap}
+.tabs a:hover{color:var(--ink);background:var(--chip)}
+.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.view{display:grid;gap:16px}
+.lead{max-width:68ch;color:var(--muted);margin:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.grid2>*{min-width:0}
+.btn{font:inherit;font-weight:600;font-size:.9rem;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:5px 10px;font-size:.82rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{font:inherit;font-size:.9rem;border:0;background:var(--panel);color:var(--muted);padding:7px 14px;cursor:pointer;font-weight:600}
+.seg button[aria-pressed="true"].long{background:var(--bull);color:#fff}
+.seg button[aria-pressed="true"].short{background:var(--bear);color:#fff}
+.seg button[aria-pressed="true"]:not(.long):not(.short){background:var(--ink);color:var(--bg)}
+label.f{display:grid;gap:4px;font-size:.85rem;color:var(--muted);font-weight:500}
+input[type=number],input[type=text],input[type=date],select,textarea{font:inherit;font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input[type=number]{font-family:var(--mono)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--chip);color:var(--muted);letter-spacing:.02em}
+.pill.ok{background:var(--bull-soft);color:var(--ok)}
+.pill.bad{background:var(--bear-soft);color:var(--bad)}
+.pill.acc{background:var(--acc-soft);color:var(--warn)}
+.ep{font-size:.75rem;color:var(--muted);font-weight:500}
+/* checklist */
+.steps{display:grid;gap:14px}
+.step h3{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.step .n{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.item:first-of-type{border-top:0}
+.item input{width:20px;height:20px;margin-top:2px;accent-color:var(--bull)}
+.item label{cursor:pointer}
+.item .why{font-size:.86rem;color:var(--muted);grid-column:2/4;margin:0;padding:8px 10px;background:var(--chip);border-radius:8px}
+.qbtn{font:inherit;font-size:.78rem;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:99px;width:24px;height:24px;cursor:pointer;padding:0}
+.verdict{position:sticky;bottom:12px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:14px 18px;border-radius:12px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.verdict.go{border-color:var(--ok)}
+.verdict.wait{border-color:var(--warn)}
+.verdict b{font-size:1.05rem}
+.meter{height:6px;background:var(--chip);border-radius:9px;overflow:hidden;flex:1 1 160px;min-width:120px}
+.meter i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+/* calc */
+.out{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kv{padding:10px 12px;border-radius:10px;background:var(--chip)}
+.kv span{display:block;font-size:.78rem;color:var(--muted)}
+.kv strong{font-family:var(--mono);font-size:1.2rem;font-variant-numeric:tabular-nums}
+.kv.big{background:var(--acc-soft)}
+.note{font-size:.86rem;padding:10px 12px;border-radius:8px;border-left:3px solid var(--warn);background:var(--acc-soft);margin:0}
+.note.bad{border-color:var(--bad);background:var(--bear-soft)}
+.note.ok{border-color:var(--ok);background:var(--bull-soft)}
+/* clock */
+.clocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.clock .t{font-family:var(--mono);font-size:2rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.zones{display:grid;gap:8px}
+.zone{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 12px;border-radius:10px;border:1px solid var(--line)}
+.zone.live{border-color:var(--ok);background:var(--bull-soft)}
+.zone.main{border-width:2px}
+.bar24{position:relative;height:34px;border-radius:8px;background:var(--chip);overflow:hidden;margin-top:6px}
+.bar24 .z{position:absolute;top:0;bottom:0;opacity:.85}
+.bar24 .now{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+/* trainer */
+.chartbox{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+canvas{display:block;width:100%;height:380px;cursor:crosshair;touch-action:manipulation}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tog{display:inline-flex;gap:6px;align-items:center;font-size:.86rem;padding:5px 10px;border:1px solid var(--line);border-radius:99px;cursor:pointer;background:var(--panel)}
+.tog input{accent-color:var(--accent)}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+.quiz{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.quiz .q{font-weight:600}
+.fb{min-height:1.6em;font-size:.92rem}
+/* learn */
+.concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.concept{display:grid;gap:8px;align-content:start}
+.concept svg{width:100%;height:auto;background:var(--bg);border-radius:8px;border:1px solid var(--line)}
+.concept p{margin:0;font-size:.9rem}
+.concept ul{margin:0;padding-left:18px;font-size:.88rem;color:var(--muted)}
+.eps{display:grid;gap:0;font-size:.9rem}
+.eps a{color:var(--ink);text-decoration:none}
+.eps a:hover{text-decoration:underline}
+.eprow{display:grid;grid-template-columns:2.4em 1fr auto;gap:10px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.eprow .num{color:var(--muted);font-size:.8rem}
+details.sk summary{cursor:pointer;font-weight:600}
+/* journal */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:640px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.76rem;color:var(--muted);font-weight:600;letter-spacing:.03em}
+td.r{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tags label{font-size:.82rem;padding:4px 10px;border:1px solid var(--line);border-radius:99px;cursor:pointer;display:inline-flex;gap:5px;align-items:center}
+.tags input{accent-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>bee ტრეიდ-ასისტენტი</h1>
+      <p class="sub">„bee-ს მენტორშიპის“ 22 ვიდეოს ხერხები, ვაჭრობისას გვერდით გასახსნელად</p>
+    </div>
+    <span class="pill acc">მხოლოდ დემოზე, სანამ ჟურნალი შედეგს არ აჩვენებს</span>
+  </header>
+
+  <nav class="tabs" aria-label="განყოფილებები"><div class="row">
+    <a href="#checklist">✓ ჩეკლისტი</a>
+    <a href="#calc">კალკულატორი</a>
+    <a href="#clock">სესიის საათი</a>
+    <a href="#trainer">სავარჯიშო ჩარტი</a>
+    <a href="#learn">ცნებები</a>
+    <a href="#journal">ჟურნალი</a>
+  </div></nav>
+
+  <!-- ============ CHECKLIST ============ -->
+  <section class="view" id="v-checklist">
+    <div>
+      <h2>შესვლამდე ჩეკლისტი</h2>
+      <p class="lead">bee-ს მოდელი ნაბიჯ-ნაბიჯ: <b>ანალიზი მაღალ თაიმფრეიმზე, შესვლა დაბალზე</b>. მონიშნე, რაც ჩარტზე ნამდვილად ხედავ. თუ რომელიმე ნაბიჯი არ იცი, დააჭირე „?“-ს.</p>
+    </div>
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:600">ჩემი იდეა:</span>
+        <div class="seg" role="group" aria-label="მიმართულება">
+          <button type="button" class="long" id="dirLong" aria-pressed="true">▲ Long</button>
+          <button type="button" class="short" id="dirShort" aria-pressed="false">▼ Short</button>
+        </div>
+      </div>
+      <button type="button" class="btn small" id="ckReset">გასუფთავება</button>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="verdict wait" id="verdict" aria-live="polite">
+      <div><b id="vTitle">ჯერ ადრეა</b><div class="sub" id="vText">მონიშნე ნაბიჯები ზემოდან ქვემოთ.</div></div>
+      <div class="meter" aria-hidden="true"><i id="vBar"></i></div>
+      <span class="num" id="vCount">0/0</span>
+    </div>
+  </section>
+
+  <!-- ============ CALCULATOR ============ -->
+  <section class="view" id="v-calc" hidden>
+    <div>
+      <h2>პოზიციის კალკულატორი</h2>
+      <p class="lead">ეპ. 4 და 8-ის მთავარი წესი: ის კი არ არის მთავარი, „რამდენით შეხვედი“, არამედ ის, <b>რამდენს რისკავ ერთ ვაჭრობაში</b>. bee თავად დაახლოებით 0.5%-ს რისკავს მიკრო კონტრაქტებით.</p>
+    </div>
+    <div class="grid2">
+      <div class="card" style="display:grid;gap:14px">
+        <div class="fields">
+          <label class="f">ანგარიში ($)<input type="number" id="cAcc" value="50000" min="0" step="100"></label>
+          <label class="f">რისკი (%)<input type="number" id="cRisk" value="0.5" min="0" step="0.1"></label>
+        </div>
+        <label class="f">ინსტრუმენტი
+          <select id="cInst">
+            <option value="2">MNQ (მიკრო ნასდაკი): $2 / პოინტი</option>
+            <option value="20">NQ (ნასდაკი): $20 / პოინტი</option>
+            <option value="5">MES (მიკრო S&amp;P): $5 / პოინტი</option>
+            <option value="50">ES (S&amp;P 500): $50 / პოინტი</option>
+            <option value="0.5">MYM (მიკრო Dow): $0.5 / პოინტი</option>
+            <option value="10">MGC (მიკრო ოქრო): $10 / $1</option>
+            <option value="custom">სხვა (ჩაწერე ქვემოთ)</option>
+          </select>
+        </label>
+        <label class="f" id="cCustomWrap" hidden>$ ერთ პოინტზე, ერთ კონტრაქტზე<input type="number" id="cCustom" value="1" min="0" step="0.1"></label>
+        <div class="fields">
+          <label class="f">შესვლა<input type="number" id="cEntry" value="21450" step="0.25"></label>
+          <label class="f">სტოპ-ლოსი<input type="number" id="cStop" value="21430" step="0.25"></label>
+          <label class="f">თეიქ-პროფიტი<input type="number" id="cTp" value="21510" step="0.25"></label>
+        </div>
+        <p class="sub">ფასები ჩარტიდან გადმოიტანე. მიმართულებას კალკულატორი თავად ხვდება: სტოპი შესვლის ქვემოთაა → long, ზემოთაა → short.</p>
+      </div>
+      <div class="card" style="display:grid;gap:12px;align-content:start">
+        <div class="out">
+          <div class="kv big"><span>კონტრაქტები</span><strong id="oQty">–</strong></div>
+          <div class="kv"><span>მიმართულება</span><strong id="oDir">–</strong></div>
+          <div class="kv"><span>სტოპი (პოინტი)</span><strong id="oPts">–</strong></div>
+          <div class="kv"><span>რისკის ლიმიტი</span><strong id="oBudget">–</strong></div>
+          <div class="kv"><span>რეალური რისკი</span><strong id="oRiskUsd">–</strong></div>
+          <div class="kv"><span>მოგება TP-ზე</span><strong id="oWin">–</strong></div>
+          <div class="kv big"><span>Risk : Reward</span><strong id="oRR">–</strong></div>
+        </div>
+        <div id="cNotes" style="display:grid;gap:8px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:6px">რატომ არის მნიშვნელოვანი რისკის %? (ეპ. 8)</h3>
+      <p class="sub" style="margin-bottom:10px">ზედიზედ წაგებები ყველასთან ხდება. ნახე, რამდენი რჩება ანგარიშზე ზედიზედ <span class="num" id="lsN">10</span> წაგების შემდეგ:</p>
+      <input type="range" id="lsRange" min="3" max="20" value="10" style="width:100%;accent-color:var(--accent)" aria-label="ზედიზედ წაგებების რაოდენობა">
+      <div class="out" id="lsOut" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ CLOCK ============ -->
+  <section class="view" id="v-clock" hidden>
+    <div>
+      <h2>სესიის საათი</h2>
+      <p class="lead">ეპ. 16: იმუშავე <b>მხოლოდ შენს სესიაზე</b> და არჩეულ სესიას კარგად გაეცანი. bee ძირითადად New York AM-ზე ვაჭრობს. დრო ავტომატურად ითვლება და ზაფხულის/ზამთრის დროზე გადასვლასაც ითვალისწინებს.</p>
+    </div>
+    <div class="clocks">
+      <div class="card clock"><span class="sub">თბილისი</span><div class="t" id="tTbs">--:--:--</div></div>
+      <div class="card clock"><span class="sub">New York (ET)</span><div class="t" id="tNy">--:--:--</div><span class="sub" id="tNyDay"></span></div>
+      <div class="card clock"><span class="sub">სტატუსი</span><div style="font-weight:700;font-size:1.1rem" id="tStatus">…</div><span class="sub" id="tNext"></span></div>
+    </div>
+    <div class="card">
+      <h3>24 საათი თბილისის დროით</h3>
+      <div class="bar24" id="bar24"></div>
+      <div class="ticks"><span>00</span><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span><span>24</span></div>
+    </div>
+    <div class="zones" id="zones"></div>
+    <p class="note">ეპ. 19: დილით შეამოწმე ეკონომიკური კალენდარი (მაგ. Forex Factory, „წითელი“ ახალი ამბები: CPI, NFP, FOMC). თუ დიდი ნიუსი გამოდის, ვაჭრობა გადადე ან რისკი შეამცირე. ბევრი prop firm ნიუსის დროს ვაჭრობას კრძალავს.</p>
+  </section>
+
+  <!-- ============ TRAINER ============ -->
+  <section class="view" id="v-trainer" hidden>
+    <div>
+      <h2>სავარჯიშო ჩარტი</h2>
+      <p class="lead">ეს ჩარტი შემთხვევით არის აწყობილი და რეალური ბაზარი არ არის. აქ თვალს ავარჯიშებ, რომ FVG, Order Block და ლიკვიდობა ერთი შეხედვით იცნო. ჯერ ჩართე ფენები და დააკვირდი, მერე სცადე ტესტი.</p>
+    </div>
+    <div class="card" style="display:grid;gap:12px">
+      <div class="toolbar">
+        <label class="tog"><input type="checkbox" id="lFvg"><span class="sw" style="background:var(--accent)"></span>FVG</label>
+        <label class="tog"><input type="checkbox" id="lOb"><span class="sw" style="background:var(--muted)"></span>Order Block</label>
+        <label class="tog"><input type="checkbox" id="lLiq"><span class="sw" style="background:var(--ink)"></span>ლიკვიდობა (swing H/L)</label>
+        <label class="tog"><input type="checkbox" id="lSweep"><span class="sw" style="background:var(--bear)"></span>Sweep</label>
+        <button type="button" class="btn small" id="newChart">↻ ახალი ჩარტი</button>
+      </div>
+      <div class="chartbox"><canvas id="cv" aria-label="სავარჯიშო სანთლების ჩარტი"></canvas></div>
+      <div class="fb" id="hover">შეეხე ან დააჭირე სანთელს: გეტყვი, რა არის.</div>
+    </div>
+    <div class="card quiz">
+      <div style="display:grid;gap:4px">
+        <span class="sub">ტესტი</span>
+        <span class="q" id="qText">დააჭირე „დაწყებას“</span>
+        <div class="fb" id="qFb"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="pill" id="qScore">0 / 0</span>
+        <button type="button" class="btn small" id="qShow">პასუხი</button>
+        <button type="button" class="btn primary small" id="qNext">დაწყება</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LEARN ============ -->
+  <section class="view" id="v-learn" hidden>
+    <div>
+      <h2>ცნებები მარტივად</h2>
+      <p class="lead">თითოეული ცნება: მოკლე განმარტება, პატარა ნახატი და ეპიზოდი, სადაც bee მას ხსნის.</p>
+    </div>
+    <div class="concepts" id="concepts"></div>
+    <div class="card">
+      <h3 style="margin-bottom:6px">22 ვიდეოს რუკა</h3>
+      <p class="sub" style="margin-bottom:6px">ნახე თანმიმდევრობით. მარჯვნივ წერია, აპლიკაციის რომელ განყოფილებაში ივარჯიშო.</p>
+      <div class="eps" id="eps"></div>
+    </div>
+  </section>
+
+  <!-- ============ JOURNAL ============ -->
+  <section class="view" id="v-journal" hidden>
+    <div>
+      <h2>ვაჭრობის ჟურნალი</h2>
+      <p class="lead">ეპ. 6 და 12: ჟურნალის გარეშე პროგრესს ვერ დაინახავ. bee ამბობს, რომ რეალურ ვაჭრობამდე <b>მინიმუმ ნახევარი წელი</b> მონაცემები უნდა შეაგროვო. შედეგი ჩაწერე <b>R-ში</b>: +2R ნიშნავს, რომ რისკის ორმაგი მოიგე, −1R კი იმას, რომ სტოპი გავარდა.</p>
+    </div>
+    <p class="note" id="jStore">ჟურნალი იტვირთება…</p>
+    <div class="out" id="jStats"></div>
+    <form class="card" id="jForm" style="display:grid;gap:12px">
+      <div class="fields">
+        <label class="f">თარიღი<input type="date" id="jDate" required></label>
+        <label class="f">ინსტრუმენტი<input type="text" id="jInst" value="MNQ" maxlength="20"></label>
+        <label class="f">მიმართულება<select id="jDir"><option value="long">Long</option><option value="short">Short</option></select></label>
+        <label class="f">შედეგი (R)<input type="number" id="jR" step="0.1" value="0" required></label>
+        <label class="f">ანგარიში<select id="jAcc"><option value="demo">დემო</option><option value="backtest">Backtest</option><option value="prop">Prop</option><option value="real">რეალური</option></select></label>
+      </div>
+      <div style="display:grid;gap:6px">
+        <span class="sub">რა იყო სეტაპში?</span>
+        <div class="tags" id="jTags"></div>
+      </div>
+      <label class="tog" style="justify-self:start"><input type="checkbox" id="jRules" checked> ჩეკლისტი სრულად დავიცავი</label>
+      <label class="f">შენიშვნა: რა ვისწავლე?<textarea id="jNote" rows="2" maxlength="600"></textarea></label>
+      <div><button type="submit" class="btn primary">ჩაწერა</button></div>
+    </form>
+    <div class="card" style="padding:0">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>თარიღი</th><th>ინსტრ.</th><th>მიმართ.</th><th>R</th><th>სეტაპი</th><th>წესები</th><th>შენიშვნა</th><th></th></tr></thead>
+          <tbody id="jRows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="jEmpty">ჯერ ჩანაწერი არ გაქვს. პირველი დემო ან backtest ვაჭრობა ზემოთ ჩაწერე.</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- routing ---------- */
+const VIEWS=["checklist","calc","clock","trainer","learn","journal"];
+function route(){
+  const h=(location.hash||"").slice(1); const v=VIEWS.includes(h)?h:"checklist";
+  VIEWS.forEach(n=>{ $("#v-"+n).hidden=n!==v; });
+  document.querySelectorAll(".tabs a").forEach(a=>a.setAttribute("aria-current",a.getAttribute("href")==="#"+v?"page":"false"));
+  if(v==="trainer") requestAnimationFrame(draw);
+}
+window.addEventListener("hashchange",route);
+
+/* ---------- CHECKLIST ---------- */
+let dir=store.get("bee.dir","long");
+const STEPS=[
+ {t:"ნარატივი და Bias",ep:"ეპ. 3, 14, 16",items:[
+  {id:"b1",L:"Daily/4H სტრუქტურა გავარკვიე: ფასი {up} ქმნის",W:"Market Structure (ეპ. 3): bullish = ახალი მაღალი მაქსიმუმები და მინიმუმები (HH/HL), bearish = დაბალი (LH/LL). ანალიზი ყოველთვის მაღალ თაიმფრეიმზე კეთდება."},
+  {id:"b2",L:"მაღალ თაიმფრეიმზე (1H–4H) მონიშნული მაქვს PD Array: FVG ან Order Block, სადაც ფასს რეაქციას ველი",W:"PD Array არის ზონა, საიდანაც ფასი ხშირად რეაგირებს. bee-ს მოდელში 1H ზონა გეუბნება, სად უნდა იყოს შესვლა. სხვა ადგილას დაბალ თაიმფრეიმზე, მისი სიტყვებით, „არაფერს აკეთებ“."},
+  {id:"b3",L:"ვიცი, რა არის სამიზნე: საპირისპირო მხარის ლიკვიდობა (ძველი {tgt})",W:"ფასი ლიკვიდობისკენ მიდის: ძველი მაქსიმუმების ზემოთ buy-stop-ებია, მინიმუმების ქვემოთ sell-stop-ები. სამიზნე წინასწარ თუ არ იცი, ვაჭრობა არ გაქვს."}
+ ]},
+ {t:"დრო",ep:"ეპ. 16, 19",items:[
+  {id:"t1",L:"ახლა ჩემი სესიაა (მაგ. New York AM). „სესიის საათში“ მწვანეა",W:"bee გირჩევს ერთი სესიის არჩევას და მხოლოდ მასში ვაჭრობას. სხვა დროს ვაჭრობას არ ხსნი."},
+  {id:"t2",L:"დიდ ნიუსამდე 30 წუთზე მეტი რჩება (ან დღეს დიდი ნიუსი არ არის)",W:"ეპ. 19: ნიუსების დღეებში ბაზარი ქაოტურია. შეამოწმე კალენდარი და ასეთ დროს ვაჭრობას მოერიდე."}
+ ]},
+ {t:"სეტაპი დაბალ თაიმფრეიმზე",ep:"ეპ. 9, 10, 11, 22",items:[
+  {id:"s1",L:"ფასი შევიდა ჩემს მაღალი თაიმფრეიმის ზონაში",W:"ზონამდე არ ვიწყებ. ველოდები, სანამ ფასი თავად მოვა იქ, სადაც ანალიზმა მითხრა."},
+  {id:"s2",L:"ლიკვიდობა აიღო (sweep): ახლო {sweep} გაიარა და უკან დაბრუნდა",W:"Sweep: სანთელი ძველ მაქსიმუმს ან მინიმუმს გასცდება, სტოპებს „აგროვებს“ და დახურვისას უკან ბრუნდება. ეს ხშირად შემობრუნებამდე ხდება (ეპ. 10)."},
+  {id:"s3",L:"ჩანს Displacement: ძლიერი, დიდტანიანი სანთლები ჩემი მიმართულებით",W:"bee: „displacement-ის გარეშე ვაჭრობა დაბალი ალბათობისაა“. ძლიერი მოძრაობა ტოვებს FVG-ს. ეს ნიშნავს, რომ მოძრაობაში დიდი ფული ჩაერთო."},
+  {id:"s4",L:"MSS: სტრუქტურა გატყდა ჩემი მიმართულებით (ბოლო {mss} გაარღვია)",W:"Market Structure Shift (ეპ. 10): sweep-ის შემდეგ ფასი არღვევს ბოლო შიდა მაქსიმუმს ან მინიმუმს. ეს შემობრუნების დასტურია."},
+  {id:"s5",L:"შესასვლელი ზონა მაქვს: FVG, IFVG ან Order Block ჩემი მიმართულებით",W:"FVG (ეპ. 9) არის სამსანთლიანი ხვრელი. Order Block (ეპ. 11) არის ბოლო საპირისპირო სანთელი ძლიერ მოძრაობამდე. შესვლა მაშინ, როცა ფასი ამ ზონაში დაბრუნდება."},
+  {id:"s6",L:"(სურვილისამებრ) SMT: NQ და ES ერთმანეთს არ ეთანხმებიან",W:"ეპ. 22: თუ ერთმა ინდექსმა ახალი მინიმუმი გააკეთა და მეორემ არა, ეს დამატებითი დასტურია. აუცილებელი არ არის.",opt:true}
+ ]},
+ {t:"რისკი",ep:"ეპ. 4, 8, 15",items:[
+  {id:"r1",L:"სტოპი იქ დგას, სადაც ჩემი იდეა აღარ მოქმედებს (sweep-ის {wick}-ის მიღმა)",W:"ეპ. 4: სტოპი შემთხვევით ადგილას არ იდება. დგება იქ, სადაც ფასის მისვლა ნიშნავს, რომ ანალიზი არასწორი იყო."},
+  {id:"r2",L:"რისკი ანგარიშის ≤ 0.5–1%. კონტრაქტები კალკულატორით დავითვალე",W:"ეპ. 8: 10%-იანი რისკით 10 წაგება ანგარიშს ანულებს და ეს გემბლინგია. წაგებების სერიაზე რისკი შეამცირე."},
+  {id:"r3",L:"Risk:Reward ≥ 1:2, თეიქი საპირისპირო ლიკვიდობაზე. ვგეგმავ ნაწილობრივ დახურვას (partials)",W:"ეპ. 4, 15: თეიქი დგება იქ, საიდანაც ფასი შეიძლება შემობრუნდეს. პოზიციის ნაწილის ადრე დახურვა ნორმალურია."},
+  {id:"r4",L:"დღის წაგების ლიმიტს ჯერ არ მივაღწიე",W:"საკუთარი წესი დაიწესე, მაგ. 2 წაგება ან −1.5% დღეში, და მერე კომპიუტერი გამორთე. prop firm-ებს მკაცრი daily loss limit აქვთ (ეპ. 5)."}
+ ]},
+ {t:"თავი",ep:"ეპ. 13, 17, 18",items:[
+  {id:"p1",L:"წინა წაგების „დასაბრუნებლად“ არ ვაჭრობ. მშვიდად ვარ",W:"ეპ. 17: ემოცია ყველას აქვს, მთავარია, რომ შენს მოქმედებას არ მართავდეს. revenge trade ყველაზე ხშირი შეცდომაა."},
+  {id:"p2",L:"ეს ჩემი A+ სეტაპია და მოწყენილობის გამო არ ვხსნი",W:"ეპ. 18: მოთმინება. ზოგ დღეს სეტაპი საერთოდ არ იქნება და ესეც ნორმალურია. ეპ. 13: ნუ ეცდები, რომ იდეალური იყო."}
+ ]}
+];
+function fill(s){
+  const L=dir==="long";
+  return s.replace("{up}",L?"HH/HL (bullish)":"LH/LL (bearish)").replace("{tgt}",L?"მაქსიმუმები, BSL":"მინიმუმები, SSL")
+   .replace("{sweep}",L?"მინიმუმს ქვემოთ":"მაქსიმუმს ზემოთ").replace("{mss}",L?"შიდა მაქსიმუმი":"შიდა მინიმუმი").replace("{wick}",L?"მინიმუმ":"მაქსიმუმ");
+}
+let checks=store.get("bee.checks",{});
+function renderSteps(){
+  const host=$("#steps"); host.innerHTML="";
+  STEPS.forEach((st,si)=>{
+    const c=document.createElement("div"); c.className="card step";
+    c.innerHTML=`<h3><span class="n">${si+1}/${STEPS.length}</span>${esc(st.t)} <span class="ep">${esc(st.ep)}</span></h3>`;
+    st.items.forEach(it=>{
+      const row=document.createElement("div"); row.className="item";
+      row.innerHTML=`<input type="checkbox" id="ck-${it.id}" ${checks[it.id]?"checked":""}><label for="ck-${it.id}">${esc(fill(it.L))}${it.opt?' <span class="pill">არასავალდ.</span>':""}</label><button type="button" class="qbtn" aria-expanded="false" aria-label="ახსნა">?</button><p class="why" hidden>${esc(it.W)}</p>`;
+      row.querySelector("input").addEventListener("change",e=>{checks[it.id]=e.target.checked;store.set("bee.checks",checks);verdict();});
+      const q=row.querySelector(".qbtn"),w=row.querySelector(".why");
+      q.addEventListener("click",()=>{w.hidden=!w.hidden;q.setAttribute("aria-expanded",String(!w.hidden));});
+      c.appendChild(row);
+    });
+    host.appendChild(c);
+  });
+  verdict();
+}
+function verdict(){
+  const req=STEPS.flatMap(s=>s.items.filter(i=>!i.opt).map(i=>({...i,step:s.t})));
+  const done=req.filter(i=>checks[i.id]).length;
+  $("#vCount").textContent=done+"/"+req.length;
+  $("#vBar").style.width=(done/req.length*100)+"%";
+  const v=$("#verdict"); const miss=req.find(i=>!checks[i.id]);
+  if(!miss){v.className="verdict go";$("#vTitle").textContent="✓ სეტაპი სრულია, შეგიძლია შეხვიდე";$("#vText").textContent="ჩაწერე სტოპი და თეიქი, დაითვალე კონტრაქტები. ვაჭრობის შემდეგ ჟურნალი შეავსე.";}
+  else{v.className="verdict wait";$("#vTitle").textContent=done===0?"ჯერ ადრეა":"⏳ დაელოდე, შესვლა ჯერ არ შეიძლება";$("#vText").textContent="აკლია: "+fill(miss.L).slice(0,90)+(fill(miss.L).length>90?"…":"");}
+}
+function setDir(d){dir=d;store.set("bee.dir",d);$("#dirLong").setAttribute("aria-pressed",String(d==="long"));$("#dirShort").setAttribute("aria-pressed",String(d==="short"));renderSteps();}
+$("#dirLong").onclick=()=>setDir("long");$("#dirShort").onclick=()=>setDir("short");
+$("#ckReset").onclick=()=>{checks={};store.set("bee.checks",checks);renderSteps();};
+
+/* ---------- CALCULATOR ---------- */
+const fmt=(n,d=0)=>isFinite(n)?n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"–";
+const calcIds=["cAcc","cRisk","cInst","cCustom","cEntry","cStop","cTp"];
+const saved=store.get("bee.calc",null); if(saved) calcIds.forEach(k=>{ if(saved[k]!=null) $("#"+k).value=saved[k]; });
+function calc(){
+  const s={};calcIds.forEach(k=>s[k]=$("#"+k).value);store.set("bee.calc",s);
+  $("#cCustomWrap").hidden=s.cInst!=="custom";
+  const acc=+s.cAcc, rp=+s.cRisk, ppt=s.cInst==="custom"?+s.cCustom:+s.cInst;
+  const e=+s.cEntry, st=+s.cStop, tp=+s.cTp;
+  const pts=Math.abs(e-st), long=st<e, budget=acc*rp/100;
+  const per=pts*ppt, qty=per>0?Math.floor(budget/per):0;
+  const risk=qty*per, rew=Math.abs(tp-e), rr=pts>0?rew/pts:NaN, win=qty*rew*ppt;
+  const tpOk=long?tp>e:tp<e;
+  $("#oQty").textContent=pts>0?String(qty):"–";
+  $("#oDir").textContent=pts>0?(long?"▲ Long":"▼ Short"):"–";
+  $("#oDir").style.color=long?"var(--bull)":"var(--bear)";
+  $("#oPts").textContent=fmt(pts,2);
+  $("#oBudget").textContent="$"+fmt(budget);
+  $("#oRiskUsd").textContent=pts>0?"$"+fmt(risk)+" ("+fmt(acc?risk/acc*100:0,2)+"%)":"–";
+  $("#oWin").textContent=tpOk&&pts>0?"$"+fmt(win):"–";
+  $("#oRR").textContent=tpOk&&pts>0?"1 : "+fmt(rr,2):"–";
+  const n=[];
+  if(rp>1) n.push(["bad",`რისკი ${rp}% მაღალია. bee ~0.5%-ს რისკავს, ხოლო 10%-ის რისკს პირდაპირ გემბლინგს უწოდებს (ეპ. 8). დამწყებისთვის 0.25–0.5% საკმარისია.`]);
+  else if(rp>0) n.push(["ok",`რისკი ${rp}%: დისციპლინის ფარგლებშია.`]);
+  if(pts===0) n.push(["bad","სტოპი შესვლის ფასს ემთხვევა. სტოპის გარეშე ვაჭრობა გემბლინგია (ეპ. 4)."]);
+  if(pts>0&&qty===0) n.push(["bad",`ერთი კონტრაქტიც კი ($${fmt(per)}) აღემატება რისკის ლიმიტს ($${fmt(budget)}). აიღე მიკრო კონტრაქტი, სტოპი შეამცირე სწორ ადგილას ან ვაჭრობა გამოტოვე.`]);
+  if(pts>0&&!tpOk) n.push(["bad","თეიქი სტოპის მხარესაა. შეამოწმე ფასები."]);
+  else if(pts>0&&rr<2) n.push(["","R:R 1:2-ზე ნაკლებია. ასეთი ვაჭრობით მოგებისთვის ძალიან ხშირად უნდა იგებდე. მოძებნე უფრო შორი ლიკვიდობა ან უფრო ზუსტი შესვლა."]);
+  $("#cNotes").innerHTML=n.map(([c,t])=>`<p class="note ${c}">${esc(t)}</p>`).join("");
+  lossSim();
+}
+function lossSim(){
+  const N=+$("#lsRange").value; $("#lsN").textContent=N;
+  const acc=+$("#cAcc").value||0;
+  $("#lsOut").innerHTML=[0.5,1,2,5,10].map(r=>{const left=Math.pow(1-r/100,N);const cls=left<.7?"neg":left<.9?"":"pos";
+    return `<div class="kv"><span>${r}% რისკი</span><strong class="${cls}">${fmt(left*100,0)}%</strong><span>$${fmt(acc*left)}</span></div>`}).join("");
+}
+calcIds.forEach(k=>$("#"+k).addEventListener("input",calc));
+$("#lsRange").addEventListener("input",lossSim);
+
+/* ---------- CLOCK ---------- */
+const ZONES=[ // ET minutes from midnight
+ {n:"Asia",a:20*60,b:24*60,c:"var(--muted)",d:"აზიის სესია. ფასი ხშირად ვიწრო დიაპაზონში მოძრაობს და ქმნის ლიკვიდობას, რომელსაც მოგვიანებით London ან NY იღებს."},
+ {n:"London",a:2*60,b:5*60,c:"var(--accent)",d:"ხშირად Asia-ს მაქსიმუმს ან მინიმუმს „აგროვებს“ და დღის პირველ დიდ მოძრაობას ქმნის."},
+ {n:"New York AM",a:9*60+30,b:11*60,c:"var(--bull)",d:"bee-ს მთავარი სესია. 9:30 ET-ზე ბირჟა იხსნება, ამ დროს დიდი მოცულობა და displacement არის. დამწყებმა მხოლოდ ეს ერთი სესია აირჩიოს.",main:true},
+ {n:"New York PM",a:13*60+30,b:16*60,c:"var(--bear)",d:"ნაშუადღევის სესია. ზოგჯერ კარგი გაგრძელებაა, მაგრამ დამწყებისთვის უფრო რთულია."}
+];
+function tzParts(tz){
+  const f=new Intl.DateTimeFormat("en-GB",{timeZone:tz,hour:"2-digit",minute:"2-digit",second:"2-digit",weekday:"short",hour12:false});
+  const p={};f.formatToParts(new Date()).forEach(x=>p[x.type]=x.value);
+  const h=+p.hour%24;return{h,m:+p.minute,s:+p.second,wd:p.weekday,txt:`${String(h).padStart(2,"0")}:${p.minute}:${p.second}`};
+}
+const pad=n=>String(n).padStart(2,"0");
+const hm=min=>{min=((min%1440)+1440)%1440;return pad(Math.floor(min/60))+":"+pad(min%60)};
+function tick(){
+  const ny=tzParts("America/New_York"), tb=tzParts("Asia/Tbilisi");
+  $("#tTbs").textContent=tb.txt; $("#tNy").textContent=ny.txt; $("#tNyDay").textContent=ny.wd;
+  const nyMin=ny.h*60+ny.m, tbMin=tb.h*60+tb.m, off=tbMin-nyMin; // tbilisi - ny in minutes
+  const weekend=(ny.wd==="Sat")||(ny.wd==="Sun"&&nyMin<18*60)||(ny.wd==="Fri"&&nyMin>=17*60);
+  const live=ZONES.filter(z=>nyMin>=z.a&&nyMin<z.b);
+  if(weekend){$("#tStatus").textContent="ბაზარი დახურულია (შაბათ-კვირა)";$("#tStatus").style.color="var(--muted)";$("#tNext").textContent="დრო backtest-ისა და ჟურნალის გადახედვისთვის (ეპ. 7).";}
+  else if(live.length){const z=live[0];$("#tStatus").textContent="● "+z.n+" მიმდინარეობს";$("#tStatus").style.color=z.main?"var(--ok)":"var(--warn)";$("#tNext").textContent="დასრულებამდე "+Math.floor((z.b-nyMin)/60)+"სთ "+((z.b-nyMin)%60)+"წთ";}
+  else{const z=ZONES[2];let d=z.a-nyMin;if(d<0)d+=1440;$("#tStatus").textContent="ახლა სესია არ არის";$("#tStatus").style.color="var(--muted)";$("#tNext").textContent="NY AM-მდე "+Math.floor(d/60)+"სთ "+(d%60)+"წთ";}
+  // bar in Tbilisi time
+  const bar=$("#bar24");
+  bar.innerHTML=ZONES.map(z=>{const a=((z.a+off)%1440+1440)%1440,len=z.b-z.a;const parts=a+len>1440?[[a,1440-a],[0,a+len-1440]]:[[a,len]];
+    return parts.map(([s,l])=>`<div class="z" title="${esc(z.n)}" style="left:${s/1440*100}%;width:${l/1440*100}%;background:${z.c}"></div>`).join("")}).join("")+`<div class="now" style="left:${tbMin/1440*100}%"></div>`;
+  $("#zones").innerHTML=ZONES.map(z=>{const isLive=!weekend&&nyMin>=z.a&&nyMin<z.b;
+    return `<div class="zone ${isLive?"live":""} ${z.main?"main":""}" style="${z.main?"border-color:var(--bull)":""}"><b>${esc(z.n)}${z.main?' <span class="pill ok">bee-ს სესია</span>':""}</b><span class="num">${hm(z.a+off)}–${hm(z.b+off)} <span class="sub">თბს</span></span><span class="sub" style="grid-column:1/3">${esc(z.d)} <span class="num">(${hm(z.a)}–${hm(z.b)} ET)</span></span></div>`}).join("");
+}
+
+/* ---------- TRAINER ---------- */
+const cv=$("#cv"), ctx=cv.getContext("2d");
+let C=[],F=[],OB=[],SW=[],SWP=[],hl=null,quiz=null,score={ok:0,n:0},reveal=false;
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gen(){
+  const R=rng(Date.now()%1e9);const N=window.innerWidth<640?42:64;C=[];let p=100,trend=0,imp=0;
+  for(let i=0;i<N;i++){
+    if(imp<=0&&R()<.09){imp=2+Math.floor(R()*2);trend=R()<.5?-1:1}
+    if(R()<.08) trend=R()<.5?-1:1;
+    let body=(R()-.5)*1.6+trend*.25;
+    if(imp>0){body=trend*(2.2+R()*1.8);imp--}
+    const o=p,c=o+body,h=Math.max(o,c)+R()*.9,l=Math.min(o,c)-R()*.9;C.push({o,h,l,c});p=c;
+  }
+  analyze();hl=null;reveal=false;
+}
+function analyze(){
+  F=[];OB=[];SW=[];SWP=[];
+  for(let i=1;i<C.length-1;i++){
+    const a=C[i-1],b=C[i+1];
+    if(a.h<b.l) F.push({i,bull:true,top:b.l,bot:a.h});
+    if(a.l>b.h) F.push({i,bull:false,top:a.l,bot:b.h});
+  }
+  F.forEach(f=>{ // mitigation
+    for(let k=f.i+2;k<C.length;k++){ if(f.bull?C[k].l<=f.top:C[k].h>=f.bot){f.mit=k;break} }
+    // order block: last opposite candle before displacement
+    for(let k=f.i-1;k>=Math.max(0,f.i-3);k--){const c=C[k];
+      if(f.bull?c.c<c.o:c.c>c.o){ if(!OB.some(o=>o.i===k)) OB.push({i:k,bull:f.bull,top:c.h,bot:c.l}); break; } }
+  });
+  for(let i=2;i<C.length-2;i++){
+    if(C[i].h>Math.max(C[i-1].h,C[i-2].h,C[i+1].h,C[i+2].h)) SW.push({i,hi:true,p:C[i].h});
+    if(C[i].l<Math.min(C[i-1].l,C[i-2].l,C[i+1].l,C[i+2].l)) SW.push({i,hi:false,p:C[i].l});
+  }
+  SW.forEach(s=>{for(let k=s.i+3;k<C.length;k++){const c=C[k];
+    if(s.hi&&c.h>s.p){ if(Math.max(c.o,c.c)<s.p) SWP.push({i:k,s}); s.taken=k; break; }
+    if(!s.hi&&c.l<s.p){ if(Math.min(c.o,c.c)>s.p) SWP.push({i:k,s}); s.taken=k; break; } }});
+}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+let geo={};
+function draw(){
+  if($("#v-trainer").hidden||!C.length) return;
+  const dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  const col={bg:css("--panel"),ink:css("--ink"),mut:css("--muted"),line:css("--line"),bull:css("--bull"),bear:css("--bear"),acc:css("--accent"),bs:css("--bull-soft"),rs:css("--bear-soft"),as:css("--acc-soft")};
+  ctx.fillStyle=col.bg;ctx.fillRect(0,0,W,H);
+  const padL=8,padR=8,padT=14,padB=14,n=C.length,step=(W-padL-padR)/n;
+  let lo=Infinity,hi=-Infinity;C.forEach(c=>{lo=Math.min(lo,c.l);hi=Math.max(hi,c.h)});const pr=(hi-lo)*.04;lo-=pr;hi+=pr;
+  const y=v=>padT+(hi-v)/(hi-lo)*(H-padT-padB), x=i=>padL+i*step+step/2;
+  geo={step,padL,n};
+  ctx.strokeStyle=col.line;ctx.lineWidth=1;for(let g=1;g<5;g++){const yy=Math.round(padT+g*(H-padT-padB)/5)+.5;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke()}
+  const showF=$("#lFvg").checked||(reveal&&quiz&&quiz.k.startsWith("fvg"));
+  const showO=$("#lOb").checked||(reveal&&quiz&&quiz.k==="ob");
+  const showL=$("#lLiq").checked||(reveal&&quiz&&quiz.k==="liq");
+  const showS=$("#lSweep").checked;
+  if(showO) OB.forEach(o=>{if(reveal&&quiz&&quiz.k==="ob"&&!o.bull)return;ctx.fillStyle=o.bull?col.bs:col.rs;ctx.strokeStyle=o.bull?col.bull:col.bear;ctx.setLineDash([3,3]);const x0=x(o.i)-step/2,w=Math.min(W-x0,step*8);ctx.fillRect(x0,y(o.top),w,y(o.bot)-y(o.top));ctx.strokeRect(x0+.5,y(o.top)+.5,w-1,y(o.bot)-y(o.top));ctx.setLineDash([])});
+  if(showF) F.forEach(f=>{if(reveal&&quiz&&((quiz.k==="fvgBull"&&!f.bull)||(quiz.k==="fvgBear"&&f.bull)))return;const x0=x(f.i-1)-step/2,end=f.mit!=null?x(f.mit)+step/2:W;ctx.globalAlpha=f.mit!=null?.45:1;ctx.fillStyle=col.as;ctx.fillRect(x0,y(f.top),end-x0,y(f.bot)-y(f.top));ctx.fillStyle=col.acc;ctx.fillRect(x0,y(f.top),2,y(f.bot)-y(f.top));ctx.globalAlpha=1});
+  if(showL) SW.forEach(s=>{if(reveal&&quiz&&quiz.k==="liq"&&!s.hi)return;const end=s.taken!=null?x(s.taken):W;ctx.strokeStyle=col.ink;ctx.globalAlpha=s.taken!=null?.35:.8;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(x(s.i),Math.round(y(s.p))+.5);ctx.lineTo(end,Math.round(y(s.p))+.5);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle=col.mut;ctx.font="10px "+css("--mono");ctx.fillText(s.hi?"BSL":"SSL",x(s.i)+3,y(s.p)+(s.hi?-4:11))});
+  C.forEach((c,i)=>{const up=c.c>=c.o,cx=x(i),bw=Math.max(2,step*.62);ctx.strokeStyle=ctx.fillStyle=up?col.bull:col.bear;ctx.beginPath();ctx.moveTo(Math.round(cx)+.5,y(c.h));ctx.lineTo(Math.round(cx)+.5,y(c.l));ctx.stroke();const t=y(Math.max(c.o,c.c)),b=y(Math.min(c.o,c.c));ctx.fillRect(cx-bw/2,t,bw,Math.max(1,b-t))});
+  if(showS) SWP.forEach(s=>{const c=C[s.i];ctx.fillStyle=col.bear;ctx.font="bold 11px "+css("--font");const yy=s.s.hi?y(c.h)-6:y(c.l)+14;ctx.textAlign="center";ctx.fillText("✕",x(s.i),yy);ctx.textAlign="left"});
+  if(hl!=null){ctx.strokeStyle=col.acc;ctx.lineWidth=2;ctx.strokeRect(x(hl)-step/2+1,1,step-2,H-2);ctx.lineWidth=1}
+  if(reveal&&quiz) quiz.ans.forEach(i=>{ctx.strokeStyle=col.ink;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x(i),y(C[i].h)-10,5,0,7);ctx.stroke();ctx.lineWidth=1});
+}
+function idxAt(ev){const r=cv.getBoundingClientRect();const i=Math.floor((ev.clientX-r.left-geo.padL)/geo.step);return i>=0&&i<geo.n?i:null}
+function describe(i){
+  const c=C[i],out=[];const up=c.c>=c.o;
+  out.push(`სანთელი #${i+1}: ${up?"მწვანე (ფასი გაიზარდა)":"წითელი (ფასი დაეცა)"}.`);
+  F.filter(f=>f.i===i).forEach(f=>out.push(`ეს არის ${f.bull?"bullish":"bearish"} FVG-ის შუა სანთელი: მეზობელი სანთლების ჩრდილები ერთმანეთს არ ეხება.${f.mit!=null?" ფასი მოგვიანებით დაბრუნდა მასში (mitigation).":" ფასი ჯერ არ დაბრუნებულა."}`));
+  OB.filter(o=>o.i===i).forEach(o=>out.push(`${o.bull?"Bullish":"Bearish"} Order Block: ბოლო საპირისპირო სანთელი ძლიერ მოძრაობამდე.`));
+  SW.filter(s=>s.i===i).forEach(s=>out.push(`Swing ${s.hi?"high: მის ზემოთ buy-stop-ებია (BSL)":"low: მის ქვემოთ sell-stop-ებია (SSL)"}.${s.taken!=null?" მოგვიანებით აიღეს.":""}`));
+  SWP.filter(s=>s.i===i).forEach(s=>out.push(`Sweep: ${s.s.hi?"მაქსიმუმს გასცდა":"მინიმუმს გასცდა"}, მაგრამ სანთელი უკან დაიხურა. სტოპები შეაგროვა.`));
+  return out.join(" ");
+}
+const QS=[
+ {k:"fvgBull",t:"დააჭირე bullish FVG-ის შუა სანთელს",f:()=>F.filter(f=>f.bull).map(f=>f.i),h:"Bullish FVG: 1-ელი სანთლის მაქსიმუმი 3-ის მინიმუმამდე ვერ აღწევს. შუაში დიდი მწვანე სანთელია."},
+ {k:"fvgBear",t:"დააჭირე bearish FVG-ის შუა სანთელს",f:()=>F.filter(f=>!f.bull).map(f=>f.i),h:"Bearish FVG: 1-ელი სანთლის მინიმუმი 3-ის მაქსიმუმამდე ვერ აღწევს. შუაში დიდი წითელი სანთელია."},
+ {k:"liq",t:"დააჭირე swing high-ს, სადაც buy-stop ლიკვიდობაა (BSL)",f:()=>SW.filter(s=>s.hi).map(s=>s.i),h:"Swing high არის სანთელი, რომლის მაქსიმუმიც ორივე მხარეს 2-2 მეზობელზე მაღლაა."},
+ {k:"ob",t:"დააჭირე bullish Order Block-ს",f:()=>OB.filter(o=>o.bull).map(o=>o.i),h:"Bullish OB: ბოლო წითელი სანთელი ძლიერ ზრდამდე (იმ ზრდამდე, რომელმაც FVG დატოვა)."}
+];
+function nextQ(){
+  let tries=0,q;do{q=QS[Math.floor(Math.random()*QS.length)];tries++}while(q.f().length===0&&tries<10);
+  if(q.f().length===0){gen();return nextQ()}
+  quiz={...q,ans:q.f()};reveal=false;$("#qText").textContent=q.t+` (ჩარტზე ${quiz.ans.length} ცალია)`;$("#qFb").textContent="";$("#qNext").textContent="შემდეგი";draw();
+}
+cv.addEventListener("click",ev=>{const i=idxAt(ev);if(i==null)return;hl=i;
+  if(quiz&&!reveal){score.n++;if(quiz.ans.includes(i)){score.ok++;$("#qFb").innerHTML='<span class="pos">✓ სწორია!</span> '+esc(describe(i));reveal=true}
+    else{$("#qFb").innerHTML='<span class="neg">✕ არა.</span> '+esc(quiz.h)+" სცადე თავიდან ან დააჭირე „პასუხს“."}
+    $("#qScore").textContent=score.ok+" / "+score.n;}
+  else $("#hover").textContent=describe(i);
+  draw();});
+$("#qNext").onclick=()=>{gen();nextQ()};
+$("#qShow").onclick=()=>{if(!quiz)return;reveal=true;$("#qFb").textContent="პასუხები წრეებითაა მონიშნული. "+quiz.h;draw()};
+$("#newChart").onclick=()=>{gen();quiz=null;$("#qText").textContent="დააჭირე „დაწყებას“";$("#qFb").textContent="";$("#qNext").textContent="დაწყება";draw()};
+["lFvg","lOb","lLiq","lSweep"].forEach(k=>$("#"+k).addEventListener("change",draw));
+window.addEventListener("resize",()=>{if(!$("#v-trainer").hidden){const nN=window.innerWidth<640?42:64;if(Math.abs(nN-C.length)>10){gen();quiz=null}draw()}});
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw)}catch(e){}
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+/* ---------- LEARN ---------- */
+function mini(cs,ann,w=300,h=140){ // cs: [o,h,l,c]
+  let lo=Infinity,hi=-Infinity;cs.forEach(c=>{lo=Math.min(lo,c[2]);hi=Math.max(hi,c[1])});ann.forEach(a=>{if(a.y!=null){lo=Math.min(lo,a.y);hi=Math.max(hi,a.y)}});
+  const pd=(hi-lo)*.12;lo-=pd;hi+=pd;const st=(w-20)/cs.length,X=i=>10+i*st+st/2,Y=v=>8+(hi-v)/(hi-lo)*(h-16);
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img">`;
+  ann.forEach(a=>{
+    if(a.box) s+=`<rect x="${X(a.from)-st/2}" y="${Y(a.top)}" width="${(a.to-a.from+1)*st}" height="${Y(a.bot)-Y(a.top)}" fill="var(${a.fill||"--acc-soft"})" stroke="var(${a.stroke||"--accent"})" stroke-dasharray="${a.dash?"3 3":"0"}"/>`;
+    if(a.line!=null) s+=`<line x1="${X(a.from)}" x2="${X(a.to)}" y1="${Y(a.y)}" y2="${Y(a.y)}" stroke="var(${a.stroke||"--ink"})" stroke-dasharray="4 3" stroke-width="1.2"/>`;
+  });
+  cs.forEach((c,i)=>{const up=c[3]>=c[0],col=up?"--bull":"--bear",bw=st*.6;const t=Y(Math.max(c[0],c[3])),b=Y(Math.min(c[0],c[3]));
+    s+=`<line x1="${X(i)}" x2="${X(i)}" y1="${Y(c[1])}" y2="${Y(c[2])}" stroke="var(${col})" stroke-width="1.4"/><rect x="${X(i)-bw/2}" y="${t}" width="${bw}" height="${Math.max(1.5,b-t)}" fill="var(${col})"/>`});
+  ann.forEach(a=>{if(a.label) s+=`<text x="${a.lx!=null?a.lx:X(a.from)}" y="${a.ly!=null?a.ly:Y(a.y!=null?a.y:a.top)-4}" font-size="10" font-family="var(--mono)" fill="var(${a.tc||"--ink"})">${esc(a.label)}</text>`});
+  return s+"</svg>";
+}
+const CON=[
+ {t:"Market Structure",ep:"ეპ. 3",svg:mini([[10,11,9.5,10.8],[10.8,13,10.6,12.8],[12.8,13.2,11.6,11.9],[11.9,12.1,11.2,11.5],[11.5,14.6,11.4,14.4],[14.4,14.8,13,13.2],[13.2,13.4,12.4,12.7],[12.7,16,12.6,15.8]],[{line:1,from:1,to:7,y:13.2,stroke:"--muted",label:"HH",lx:30,ly:20},{line:1,from:3,to:7,y:11.2,stroke:"--muted",label:"HL",tc:"--muted"}]),
+  p:"ფასი კიბესავით მოძრაობს. ზრდისას ყოველი ახალი მაქსიმუმი (HH) და მინიმუმი (HL) წინაზე მაღალია. ვარდნისას პირიქითაა (LH, LL).",li:["Bullish სტრუქტურაში ვეძებ long-ს, bearish-ში short-ს","ანალიზი Daily/4H/1H-ზე, შესვლა 5m/1m-ზე"]},
+ {t:"ლიკვიდობა და Sweep",ep:"ეპ. 10",svg:mini([[12,12.4,11,11.2],[11.2,11.5,10.2,10.4],[10.4,11.6,10.3,11.4],[11.4,11.8,10.8,11],[11,11.3,9.6,11.1],[11.1,12.8,11,12.6],[12.6,13.6,12.4,13.4]],[{line:1,from:1,to:6,y:10.2,stroke:"--ink",label:"SSL: აქ sell-stop-ებია",lx:80,ly:132},{label:"sweep ✕",lx:118,ly:16,tc:"--bear"}]),
+  p:"ძველი მინიმუმის ქვემოთ ბევრი ტრეიდერის სტოპი დგას. „დიდი ფული“ ფასს იქ ჩამოიყვანს, სტოპებს აიღებს და მერე ფასი ზემოთ მიდის.",li:["BSL: buy-side ლიკვიდობა, მაქსიმუმების ზემოთ","SSL: sell-side ლიკვიდობა, მინიმუმების ქვემოთ","Sweep: ჩრდილი გასცდა, ტანი უკან დაიხურა"]},
+ {t:"Displacement და MSS",ep:"ეპ. 10",svg:mini([[13,13.3,12,12.2],[12.2,12.8,11.8,12.5],[12.5,12.6,11.4,11.6],[11.6,11.7,10.6,10.9],[10.9,12.9,10.8,12.8],[12.8,14.4,12.7,14.2],[14.2,14.6,13.6,13.9]],[{line:1,from:1,to:6,y:12.8,stroke:"--accent",label:"MSS",tc:"--accent",lx:16,ly:44}]),
+  p:"Sweep-ის შემდეგ ფასი ძლიერი, დიდი სანთლებით მოდის (displacement) და ბოლო შიდა მაქსიმუმს არღვევს (MSS). ეს ნიშნავს, რომ მიმართულება შეიცვალა.",li:["displacement-ის გარეშე ვაჭრობა დაბალი ალბათობისაა","MSS-ის შემდეგ ველოდები დაბრუნებას FVG-ში"]},
+ {t:"Fair Value Gap (FVG)",ep:"ეპ. 9",svg:mini([[10,11,9.6,10.8],[10.8,14,10.7,13.8],[13.8,14.6,12.4,14.3],[14.3,14.5,13.2,13.4],[13.4,13.6,12.5,12.9],[12.9,15,12.8,14.8]],[{box:1,from:0,to:5,top:12.4,bot:11,label:"FVG",tc:"--accent"}]),
+  p:"სამი სანთელი: შუა სანთელი იმდენად ძლიერია, რომ 1-ელი სანთლის მაქსიმუმსა და მე-3-ის მინიმუმს შორის „ხვრელი“ რჩება. ფასი ხშირად ბრუნდება ამ ხვრელში და იქიდან აგრძელებს მოძრაობას.",li:["Bullish FVG: შესვლა, როცა ფასი ზემოდან ჩამოდის ხვრელში","IFVG: გარღვეული FVG, რომელიც საპირისპიროდ მუშაობს"]},
+ {t:"Order Block",ep:"ეპ. 11",svg:mini([[12,12.3,11.2,11.4],[11.4,11.6,10.4,10.6],[10.6,12.8,10.5,12.6],[12.6,14,12.5,13.8],[13.8,14,12.2,12.4],[12.4,15,12.3,14.8]],[{box:1,from:1,to:5,top:11.6,bot:10.4,fill:"--bull-soft",stroke:"--bull",dash:1,label:"bullish OB",tc:"--bull",ly:134,lx:30}]),
+  p:"ბოლო საპირისპირო სანთელი ძლიერ მოძრაობამდე. ზრდისთვის ეს ბოლო წითელი სანთელია. ბევრი შესვლისთვის მის შუა ნაწილს (50%) იყენებს.",li:["OB ძლიერია, თუ მის შემდეგ displacement და FVG მოდის","Daily Bias-ისთვის Weekly/Daily OB-ებიც მუშაობს (ეპ. 16)"]},
+ {t:"Daily Bias",ep:"ეპ. 16",svg:null,
+  p:"დილით პირველი კითხვა ასეთია: დღიური სანთელი საით დაიხურება? ყველაზე ალბათური ვაჭრობა დღიური მიმართულებით ხდება.",li:["ნახე Weekly → Daily: bullish თუ bearish „პროგრამა“?","სად არის უახლოესი Daily FVG/OB და ლიკვიდობა?","დაწერე ერთი წინადადება: „დღეს ველი … ზონიდან … სამიზნისკენ“","bias-ის ამოცნობა ძირითადად ჩარტთან გატარებული დროით მოდის"]},
+ {t:"SMT Divergence",ep:"ეპ. 22",svg:null,
+  p:"ერთმანეთთან დაკავშირებული ინდექსების (NQ და ES) შედარება. თუ NQ-მ ახალი მინიმუმი გააკეთა, ES-მა კი ვერა, ერთ-ერთი „იტყუება“ და შემობრუნება მოსალოდნელია.",li:["TradingView-ზე ორი ჩარტი გვერდიგვერდ, ერთნაირი თაიმფრეიმით","ეს დამატებითი დასტურია და არა ცალკე სიგნალი"]},
+ {t:"bee-ს 3-თაიმფრეიმიანი მოდელი",ep:"15-წამიანი სტრატეგია",svg:null,
+  p:"1H: ზონა (FVG/OB) → 5m: ფასი ზონაშია, ჩანს displacement და 5m FVG/OB → 15s: ზუსტი შესვლა პატარა სტოპით. სამი თაიმფრეიმი ერთმანეთს უნდა ემთხვეოდეს.",li:["15 წამი ძალიან სწრაფია. დამწყებმა იგივე მოდელი 1H → 15m → 1m-ზე სცადოს","TradingView-ზე წამიანი თაიმფრეიმი Premium-შია"]},
+ {t:"Prop Firms",ep:"ეპ. 5, 8",svg:null,
+  p:"კომპანიები, რომლებიც გამოცდის ჩაბარების შემდეგ დიდ ანგარიშს გაძლევენ. bee-ს აზრით, 100–300$-იანი პირადი ანგარიშით ფულს ვერ იშოვი, ამიტომ prop-ს იყენებენ.",li:["Futures prop vs CFD prop: CFD-ზე სპრედი შესვლას აძვირებს","მკაცრი წესები: daily loss, max drawdown, ნიუსები","გამოცდა ფასიანია. ჯერ დემოზე დაამტკიცე შედეგი"]}
+];
+$("#concepts").innerHTML=CON.map(c=>`<div class="card concept"><h3>${esc(c.t)} <span class="ep">${esc(c.ep)}</span></h3>${c.svg||""}<p>${esc(c.p)}</p><ul>${c.li.map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div>`).join("");
+const EPS=[
+ ["no_fTpv9R3M","1","Introduction to Trading","ცნებები"],["BYA4LMfDBR8","2","TradingView & Candlesticks","სავარჯიშო ჩარტი"],["BopcefLVBmE","3","Market Structure","ჩეკლისტი ①"],
+ ["uCMlH49-q98","4","Risk Management & Orders","კალკულატორი"],["-1fSJWtqlMA","5","Prop Firms","ცნებები"],["xHzCfZrz6z8","6","Journaling","ჟურნალი"],
+ ["tXthLmwA7EU","7","Backtesting","სავარჯიშო ჩარტი + ჟურნალი"],["asjakYnks0A","8","Risk Management p2","კალკულატორი"],["5TRT4XlwnF4","9","Fair Value Gaps (FVG)","სავარჯიშო ჩარტი"],
+ ["TuPZAgJCFzk","10","Liquidity და MSS","სავარჯიშო ჩარტი"],["7OE-VyiBqXw","11","Orderblocks","სავარჯიშო ჩარტი"],["PjH_SOLIVEw","12","Trade Recap","ჟურნალი"],
+ ["D-QsZtmMNLw","13","არ სცადო, რომ იყო იდეალური","ჩეკლისტი ⑤"],["qhnz5aBUkRs","14","როგორ გავაკეთოთ ანალიზი","ჩეკლისტი ①"],["cGEqCKSO6iY","15","How to take profits","კალკულატორი"],
+ ["SYpPXeZNcys","16","Daily Bias","სესიის საათი"],["7F7fiiX2BFU","★","15-წამიანი სტრატეგია","ცნებები"],["8URaTkM-6Gw","17","როგორ მივიღოთ წაგებები","ჩეკლისტი ⑤"],
+ ["Fe7n0Em4iiQ","18","მოთმინება","ჩეკლისტი ⑤"],["MvBzeIwx58M","19","News","სესიის საათი"],["6Z7byGVns-s","20","დასასრული (უმნიშვნელოვანესი)","ყველა"],["9bMv6DdGDIQ","★","ყველაფერი SMT-ზე","ცნებები"]
+];
+$("#eps").innerHTML=EPS.map(e=>`<div class="eprow"><span class="num">${e[1]}</span><a href="https://www.youtube.com/watch?v=${e[0]}&list=PLqLRPyFbGacEQVpbuEXqUlPsdKa1BMxrT" target="_blank" rel="noopener">${esc(e[2])}</a><span class="pill">${esc(e[3])}</span></div>`).join("");
+
+/* ---------- JOURNAL ---------- */
+const TAGS=["Sweep","Displacement","MSS","FVG","IFVG","Order Block","SMT","NY AM","London","ნიუსის დღე"];
+$("#jTags").innerHTML=TAGS.map((t,i)=>`<label><input type="checkbox" value="${esc(t)}" id="tag${i}">${esc(t)}</label>`).join("");
+$("#jDate").value=new Date().toISOString().slice(0,10);
+let trades=[],col=null,mode="local";
+function renderJ(){
+  const rows=[...trades].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.t||0)-(a.t||0));
+  $("#jEmpty").hidden=rows.length>0;
+  $("#jRows").innerHTML=rows.map(r=>`<tr><td class="num">${esc(r.date)}</td><td>${esc(r.inst)} <span class="pill">${esc(r.acc||"")}</span></td><td style="color:var(${r.dir==="long"?"--bull":"--bear"})">${r.dir==="long"?"▲ Long":"▼ Short"}</td><td class="r ${r.r>0?"pos":r.r<0?"neg":""}">${r.r>0?"+":""}${fmt(+r.r,1)}R</td><td><div class="tags">${(r.tags||[]).map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div></td><td>${r.rules?'<span class="pill ok">✓</span>':'<span class="pill bad">✕</span>'}</td><td style="max-width:28ch">${esc(r.note||"")}</td><td><button type="button" class="btn small" data-del="${esc(r.id)}" aria-label="წაშლა">✕</button></td></tr>`).join("");
+  const n=rows.length,w=rows.filter(r=>r.r>0).length,tot=rows.reduce((s,r)=>s+(+r.r||0),0);
+  const fr=rows.filter(r=>r.rules),frR=fr.reduce((s,r)=>s+(+r.r||0),0),br=rows.filter(r=>!r.rules),brR=br.reduce((s,r)=>s+(+r.r||0),0);
+  $("#jStats").innerHTML=[["ვაჭრობები",n],["Win rate",n?fmt(w/n*100,0)+"%":"–"],["ჯამი",(tot>0?"+":"")+fmt(tot,1)+"R"],["საშ. R",n?fmt(tot/n,2)+"R":"–"],["წესებით",fr.length?fmt(frR/fr.length,2)+"R/ვაჭრ.":"–"],["წესების გარეშე",br.length?fmt(brR/br.length,2)+"R/ვაჭრ.":"–"]]
+   .map(([k,v])=>`<div class="kv"><span>${k}</span><strong>${v}</strong></div>`).join("");
+}
+$("#jRows").addEventListener("click",async e=>{const id=e.target.closest("[data-del]")?.dataset.del;if(!id)return;
+  const btn=e.target.closest("button");if(btn.dataset.armed!=="1"){btn.dataset.armed="1";btn.textContent="წავშალო?";setTimeout(()=>{btn.dataset.armed="";btn.textContent="✕"},2500);return}
+  if(mode==="db"){try{await col.doc(id).delete()}catch(err){$("#jStore").textContent="წაშლა ვერ მოხერხდა. სცადე თავიდან."}}
+  else{trades=trades.filter(t=>t.id!==id);store.set("bee.trades",trades);renderJ()}});
+$("#jForm").addEventListener("submit",async e=>{e.preventDefault();
+  const rec={date:$("#jDate").value,inst:$("#jInst").value.trim()||"—",dir:$("#jDir").value,r:+$("#jR").value||0,acc:$("#jAcc").value,
+    tags:[...document.querySelectorAll("#jTags input:checked")].map(i=>i.value),rules:$("#jRules").checked,note:$("#jNote").value.trim(),t:Date.now()};
+  if(mode==="db"){try{await col.add(rec)}catch(err){$("#jStore").textContent="ჩაწერა ვერ მოხერხდა. შეამოწმე კავშირი და სცადე თავიდან.";return}}
+  else{rec.id="l"+rec.t;trades.push(rec);store.set("bee.trades",trades);renderJ()}
+  $("#jNote").value="";$("#jR").value="0";document.querySelectorAll("#jTags input").forEach(i=>i.checked=false);});
+function localMode(msg){mode="local";trades=store.get("bee.trades",[]);$("#jStore").className="note";$("#jStore").textContent=msg;renderJ()}
+async function initJ(){
+  renderJ();
+  const timer=setTimeout(()=>{if(mode!=="db")localMode("ჟურნალი ამ ბრაუზერში ინახება. სხვა მოწყობილობაზე არ გამოჩნდება.")},10000);
+  try{
+    const db=await claude.use("db"),user=await claude.use("user");const id=user&&await user.id();
+    if(!db||!id){clearTimeout(timer);localMode("ჟურნალი ამ ბრაუზერში ინახება (შესვლის გარეშე). claude.ai-ზე შესვლის შემდეგ ყველგან შეინახება.");return}
+    col=db.collection("data/users/"+id+"/trades");
+    col.onSnapshot(snap=>{clearTimeout(timer);mode="db";trades=snap.docs.map(d=>({id:d.id,...d.data()}));$("#jStore").className="note ok";$("#jStore").textContent="ჟურნალი შენს ანგარიშზე ინახება. მხოლოდ შენ ხედავ.";renderJ()},
+      ()=>{clearTimeout(timer);localMode("ონლაინ შენახვა ვერ ჩაირთო, ამიტომ ჟურნალი ამ ბრაუზერში ინახება.")});
+  }catch(e){clearTimeout(timer);localMode("ჟურნალი ამ ბრაუზერში ინახება.")}
+}
+
+/* ---------- boot ---------- */
+setDir(dir); calc(); tick(); setInterval(tick,1000); gen(); route(); initJ();
+})();
+</script>
