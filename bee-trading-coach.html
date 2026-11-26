@@ -149,7 +149,46 @@ td.r{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
     <a href="#trainer">სავარჯიშო ჩარტი</a>
     <a href="#learn">ცნებები</a>
     <a href="#journal">ჟურნალი</a>
+    <a href="#live">⚡ ლაივ ინდიკატორი</a>
   </div></nav>
+
+  <!-- ============ LIVE INDICATOR ============ -->
+  <section class="view" id="v-live" hidden>
+    <div>
+      <h2>ლაივ ინდიკატორი TradingView-სთვის</h2>
+      <p class="lead">ეს ინდიკატორი პირდაპირ შენს რეალურ ჩარტზე მუშაობს. ავტომატურად ხაზავს სესიას, FVG-ებს, ლიკვიდობას, sweep-ს და MSS-ს. კუთხეში ჩეკლისტის პანელს აჩვენებს და იქვე ითვლის, რამდენი კონტრაქტი აიღო. ყველა ხუთი პირობა რომ შესრულდება, ჩარტზე „A+“ ნიშანი და ხმოვანი alert გამოჩნდება.</p>
+    </div>
+    <div class="grid2">
+      <div class="card" style="display:grid;gap:10px;align-content:start">
+        <h3>დაყენება (2 წუთი)</h3>
+        <ol style="margin:0;padding-left:20px;display:grid;gap:6px;font-size:.92rem">
+          <li>დააჭირე <b>„კოდის კოპირებას“</b> ქვემოთ.</li>
+          <li>TradingView-ში გახსენი ჩარტი, ქვემოთ აირჩიე <b>Pine Editor</b>.</li>
+          <li>იქ არსებული ტექსტი წაშალე და ჩასვი კოპირებული კოდი (Ctrl+V).</li>
+          <li>დააჭირე <b>Save</b>, მერე <b>Add to chart</b>.</li>
+          <li>ინდიკატორის ⚙ პარამეტრებში ჩაწერე შენი ანგარიში, რისკის % და ინსტრუმენტი (MNQ, NQ...).</li>
+          <li>Alert-ისთვის: ⏰ Alert → Condition: <b>bee ICT</b> → <b>„A+ LONG სეტაპი“</b> ან <b>„SHORT“</b>.</li>
+        </ol>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="btn primary" id="pineCopy">კოდის კოპირება</button>
+          <span class="sub" id="pineMsg"></span>
+        </div>
+      </div>
+      <div class="card" style="display:grid;gap:8px;align-content:start">
+        <h3>რას აჩვენებს ჩარტზე</h3>
+        <div class="eps">
+          <div class="eprow"><span class="sw" style="background:var(--bull)"></span><span><b>მწვანე ფონი</b>: შენი სესია (ნაგულისხმევად NY AM)</span><span class="ep">ეპ. 16</span></div>
+          <div class="eprow"><span class="sw" style="background:var(--accent)"></span><span><b>ფერადი ყუთები</b>: FVG. როცა ფასი შიგნით შევა, ყუთი ღიავდება</span><span class="ep">ეპ. 9</span></div>
+          <div class="eprow"><span class="sw" style="background:var(--muted)"></span><span><b>წყვეტილი ხაზები</b>: swing H/L, Asia/London H/L, PDH/PDL. ესაა ლიკვიდობა</span><span class="ep">ეპ. 10</span></div>
+          <div class="eprow"><span class="sw" style="background:var(--bear)"></span><span><b>„SSL/BSL sweep“</b>: ფასმა ლიკვიდობა აიღო და დაბრუნდა</span><span class="ep">ეპ. 10</span></div>
+          <div class="eprow"><span class="sw" style="background:var(--bull)"></span><span><b>„MSS ▲/▼“</b>: sweep-ის შემდეგ სტრუქტურა გატყდა</span><span class="ep">ეპ. 10</span></div>
+          <div class="eprow"><span class="sw" style="background:var(--ink)"></span><span><b>პანელი</b>: ✓/✕ ყველა ნაბიჯზე, სტოპი, კონტრაქტები, სამიზნე, R:R</span><span class="ep">ეპ. 4, 8</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">ინდიკატორი წესებს მექანიკურად ამოწმებს და ყველა „✓“-ს შენი თვალით უნდა გადაამოწმებდე. ის ავტომატურად არ ვაჭრობს და მოგებას არ გარანტირებს. სანამ დემოზე და ჟურნალში მინიმუმ 50 ვაჭრობას არ ჩაიწერ, რეალურ ფულზე ნუ გადახვალ.</p>
+    <details class="card sk"><summary>კოდის ნახვა</summary><pre id="pineCode" style="overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.5;margin:12px 0 0;max-height:420px">იტვირთება…</pre></details>
+  </section>
 
   <!-- ============ CHECKLIST ============ -->
   <section class="view" id="v-checklist">
@@ -336,7 +375,14 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 /* ---------- routing ---------- */
-const VIEWS=["checklist","calc","clock","trainer","learn","journal"];
+const VIEWS=["checklist","calc","clock","trainer","learn","journal","live"];
+let pineTxt="";
+fetch("bee-ict.pine").then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>{pineTxt=t;$("#pineCode").textContent=t;$("#pineMsg").textContent=t.split("\n").length+" ხაზი, Pine Script v5"}).catch(()=>{$("#pineCode").textContent="კოდი ვერ ჩაიტვირთა. განაახლე გვერდი.";});
+$("#pineCopy").addEventListener("click",()=>{
+  if(!pineTxt){$("#pineMsg").textContent="კოდი ჯერ იტვირთება…";return}
+  const sel=()=>{const d=$("#pineCode").closest("details");d.open=true;const r=document.createRange();r.selectNodeContents($("#pineCode"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("#pineMsg").textContent="მონიშნულია. დააჭირე Ctrl+C."};
+  try{navigator.clipboard.writeText(pineTxt).then(()=>{$("#pineMsg").textContent="✓ დაკოპირდა! ახლა ჩასვი Pine Editor-ში."},sel)}catch(e){sel()}
+});
 function route(){
   const h=(location.hash||"").slice(1); const v=VIEWS.includes(h)?h:"checklist";
   VIEWS.forEach(n=>{ $("#v-"+n).hidden=n!==v; });
