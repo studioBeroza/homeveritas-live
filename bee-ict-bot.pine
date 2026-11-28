@@ -1,0 +1,376 @@
+// bee ICT ბოტი — „bee-ს მენტორშიპის“ მოდელი + მრავალთაიმფრეიმიანი ფილტრი + რისკის დამცავები
+// 1) ჯერ Strategy Tester-ში შეამოწმე (backtest). 2) მერე დემოზე alert-ებით. რეალური ფული — მხოლოდ შემდეგ.
+// ეს სასწავლო ინსტრუმენტია და არა ფინანსური რჩევა.
+//@version=5
+strategy("bee ICT ბოტი", "bee BOT", overlay = true, initial_capital = 50000, currency = currency.USD,
+     default_qty_type = strategy.fixed, default_qty_value = 1, pyramiding = 0,
+     commission_type = strategy.commission.cash_per_contract, commission_value = 0.62, slippage = 1,
+     max_labels_count = 300, max_lines_count = 300, max_boxes_count = 150)
+
+NY  = "America/New_York"
+atr = ta.atr(14)
+
+// ───────────── 1 · მაკრო ფენა (მიმართულება) ─────────────
+G1 = "1 · მაკრო: მიმართულება"
+biasMode = input.string("ავტო (HTF სტრუქტურა)", "მიმართულება", options = ["ავტო (HTF სტრუქტურა)", "ორივე მიმართულება", "მხოლოდ Long", "მხოლოდ Short"], group = G1)
+biasTf   = input.timeframe("240", "მაკრო თაიმფრეიმი", group = G1)
+usePD    = input.bool(false, "Premium/Discount: Long მხოლოდ წინა დღის შუაზე დაბლა, Short მაღლა", group = G1)
+
+// ───────────── 2 · შუა ფენა (ზონა) ─────────────
+G2 = "2 · შუა: ზონა"
+useHtfFvg = input.bool(false, "მოითხოვე HTF FVG-თან შეხება sweep-მდე/შემდეგ", group = G2)
+htf       = input.timeframe("60", "ზონის თაიმფრეიმი", group = G2)
+
+// ───────────── 3 · შესვლის ფენა ─────────────
+G3 = "3 · შესვლა: Sweep → Displacement → MSS → FVG"
+swLen     = input.int(3, "Swing-ის სიგანე", minval = 2, maxval = 15, group = G3)
+mssWin    = input.int(30, "MSS-ის ფანჯარა sweep-ის შემდეგ (სანთელი)", minval = 3, group = G3)
+dispMult  = input.float(1.0, "Displacement: ტანი ≥ ATR ×", minval = 0.1, step = 0.1, group = G3)
+needDisp  = input.bool(true, "Displacement სავალდებულოა", group = G3)
+fvgAtr    = input.float(0.1, "FVG მინ. ზომა (ATR ×)", minval = 0, step = 0.05, group = G3)
+entryMode = input.string("FVG ლიმიტი", "შესვლის ტიპი", options = ["FVG ლიმიტი", "MSS სანთლის დახურვა"], group = G3)
+entryLvl  = input.string("FVG კიდე", "ლიმიტის დონე", options = ["FVG კიდე", "FVG შუა (CE)"], group = G3)
+fillWin   = input.int(20, "ლიმიტის მოლოდინი (სანთელი)", minval = 1, group = G3)
+
+// ───────────── 4 · დრო ─────────────
+G4 = "4 · დრო"
+tradeSess = input.session("0930-1100", "ახალი ვაჭრობები მხოლოდ (NY)", group = G4)
+holdSess  = input.session("0930-1545", "პოზიცია იხურება ამის შემდეგ (NY)", group = G4)
+
+// ───────────── 5 · რისკი და გამოსვლა ─────────────
+G5 = "5 · რისკი და გამოსვლა"
+riskP     = input.float(0.5, "რისკი ერთ ვაჭრობაზე (%)", minval = 0.05, step = 0.05, group = G5)
+useEquity = input.bool(false, "რისკი მიმდინარე ბალანსიდან (კომპაუნდი)", group = G5)
+pvSel     = input.string("ავტო", "$ ერთ პოინტზე", options = ["ავტო", "MNQ 2", "NQ 20", "MES 5", "ES 50", "MYM 0.5", "MGC 10"], group = G5)
+stopBuf   = input.float(1.0, "ბუფერი სტოპზე (პოინტი)", minval = 0, group = G5)
+tpMode    = input.string("ლიკვიდობა", "სამიზნე", options = ["ლიკვიდობა", "ფიქსირებული R"], group = G5)
+minRR     = input.float(2.0, "მინ. R:R (ნაკლებზე ვაჭრობა გამოტოვდება)", minval = 0.5, step = 0.25, group = G5)
+fixedR    = input.float(3.0, "ფიქსირებული R (თუ ზემოთ ასეა არჩეული)", minval = 0.5, step = 0.25, group = G5)
+usePart   = input.bool(true, "50% დახურვა TP1-ზე და სტოპი შესვლაზე (BE)", group = G5)
+tp1R      = input.float(1.0, "TP1 (R)", minval = 0.25, step = 0.25, group = G5)
+
+// ───────────── 6 · დამცავები (ფსიქოლოგია კოდში) ─────────────
+G6 = "6 · დამცავები"
+maxTrades = input.int(2, "მაქს. ვაჭრობა დღეში", minval = 1, group = G6)
+maxLosses = input.int(2, "მაქს. წაგება დღეში", minval = 1, group = G6)
+dayLossP  = input.float(1.5, "დღის წაგების ლიმიტი (%)", minval = 0.1, step = 0.1, group = G6)
+oneDone   = input.bool(false, "მოგების შემდეგ დღეს აღარ ვვაჭრობ", group = G6)
+
+G7 = "7 · ჩვენება"
+showFvg = input.bool(true, "FVG ყუთები", group = G7)
+showTbl = input.bool(true, "სტატისტიკის პანელი", group = G7)
+cBull   = input.color(#13866f, "Bull", group = G7)
+cBear   = input.color(#cf4b3f, "Bear", group = G7)
+cLiq    = input.color(#8a96a6, "ლიკვიდობა", group = G7)
+
+// ───────────── დრო და დღე ─────────────
+inSess = not na(time(timeframe.period, tradeSess, NY))
+inHold = not na(time(timeframe.period, holdSess, NY))
+bgcolor(inSess ? color.new(cBull, 93) : na, title = "სავაჭრო ფანჯარა")
+
+dom    = dayofmonth(time, NY)
+newDay = dom != dom[1]
+var int   tradesToday = 0
+var int   lossesToday = 0
+var int   winsToday   = 0
+var float netDayStart = 0.0
+if newDay
+    tradesToday := 0
+    lossesToday := 0
+    winsToday   := 0
+    netDayStart := strategy.netprofit
+
+// ───────────── მაკრო bias ─────────────
+htfTrend() =>
+    float ph = ta.pivothigh(high, 3, 3)
+    float pl = ta.pivotlow(low, 3, 3)
+    var float lastH = na
+    var float lastL = na
+    var int tr = 0
+    if not na(ph)
+        lastH := ph
+    if not na(pl)
+        lastL := pl
+    if not na(lastH) and close > lastH
+        tr := 1
+    if not na(lastL) and close < lastL
+        tr := -1
+    tr
+
+htfTrendPrev() =>
+    int t = htfTrend()
+    t[1]
+
+biasAuto = nz(request.security(syminfo.tickerid, biasTf, htfTrendPrev(), lookahead = barmerge.lookahead_on))
+allowL = biasMode == "ორივე მიმართულება" or biasMode == "მხოლოდ Long" or (biasMode == "ავტო (HTF სტრუქტურა)" and biasAuto == 1)
+allowS = biasMode == "ორივე მიმართულება" or biasMode == "მხოლოდ Short" or (biasMode == "ავტო (HTF სტრუქტურა)" and biasAuto == -1)
+
+[pdh, pdl] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+pdMid = (pdh + pdl) / 2
+plot(usePD ? pdMid : na, "წინა დღის შუა", color.new(color.orange, 40), 1, plot.style_linebr)
+
+// ───────────── შუა ფენა: HTF FVG ─────────────
+htfF() =>
+    float bt = ta.valuewhen(low > high[2], low, 0)
+    float bb = ta.valuewhen(low > high[2], high[2], 0)
+    float st = ta.valuewhen(high < low[2], low[2], 0)
+    float sb = ta.valuewhen(high < low[2], high, 0)
+    [bt[1], bb[1], st[1], sb[1]]
+
+[hBt, hBb, hSt, hSb] = request.security(syminfo.tickerid, htf, htfF(), lookahead = barmerge.lookahead_on)
+var int lastHtfBull = na
+var int lastHtfBear = na
+if not na(hBt) and low <= hBt and high >= hBb
+    lastHtfBull := bar_index
+if not na(hSt) and high >= hSb and low <= hSt
+    lastHtfBear := bar_index
+
+// ───────────── FVG (შესვლის თაიმფრეიმი) ─────────────
+bullF = low > high[2] and (low - high[2]) >= atr * fvgAtr
+bearF = high < low[2] and (low[2] - high) >= atr * fvgAtr
+var float bTop = na
+var float bBot = na
+var int   bBar = na
+var float sTop = na
+var float sBot = na
+var int   sBar = na
+if bullF
+    bTop := low
+    bBot := high[2]
+    bBar := bar_index
+    if showFvg
+        box.new(bar_index - 2, low, bar_index + 6, high[2], border_color = color.new(cBull, 70), bgcolor = color.new(cBull, 88))
+if bearF
+    sTop := low[2]
+    sBot := high
+    sBar := bar_index
+    if showFvg
+        box.new(bar_index - 2, low[2], bar_index + 6, high, border_color = color.new(cBear, 70), bgcolor = color.new(cBear, 88))
+
+// ───────────── Displacement ─────────────
+var int lastDispBull = na
+var int lastDispBear = na
+if close > open and (close - open) >= atr * dispMult
+    lastDispBull := bar_index
+if close < open and (open - close) >= atr * dispMult
+    lastDispBear := bar_index
+
+// ───────────── ლიკვიდობა და Sweep ─────────────
+type Liq
+    float p
+    bool  hi
+
+var array<Liq> liqs = array.new<Liq>()
+ph = ta.pivothigh(high, swLen, swLen)
+pl = ta.pivotlow(low, swLen, swLen)
+var float lastPH = na
+var float lastPL = na
+if not na(ph)
+    lastPH := ph
+    array.push(liqs, Liq.new(ph, true))
+if not na(pl)
+    lastPL := pl
+    array.push(liqs, Liq.new(pl, false))
+while array.size(liqs) > 40
+    array.shift(liqs)
+
+var int   sslSweep  = na
+var int   bslSweep  = na
+var float setupLow  = na
+var float setupHigh = na
+bool sweptSSL = false
+bool sweptBSL = false
+if array.size(liqs) > 0
+    for i = array.size(liqs) - 1 to 0
+        Liq q = array.get(liqs, i)
+        if q.hi and high > q.p
+            if close < q.p
+                sweptBSL := true
+            array.remove(liqs, i)
+        else if not q.hi and low < q.p
+            if close > q.p
+                sweptSSL := true
+            array.remove(liqs, i)
+
+if sweptSSL
+    sslSweep := bar_index
+    setupLow := low
+    label.new(bar_index, low, "SSL", style = label.style_label_up, color = color.new(cBull, 75), textcolor = color.white, size = size.tiny)
+if sweptBSL
+    bslSweep := bar_index
+    setupHigh := high
+    label.new(bar_index, high, "BSL", style = label.style_label_down, color = color.new(cBear, 75), textcolor = color.white, size = size.tiny)
+if not na(sslSweep) and bar_index - sslSweep <= mssWin
+    setupLow := math.min(setupLow, low)
+if not na(bslSweep) and bar_index - bslSweep <= mssWin
+    setupHigh := math.max(setupHigh, high)
+
+// ───────────── MSS ─────────────
+xUp = ta.crossover(close, lastPH)
+xDn = ta.crossunder(close, lastPL)
+var int bullFor = na
+var int bearFor = na
+bullMss = not na(sslSweep) and bar_index - sslSweep <= mssWin and xUp and nz(bullFor, -1) != sslSweep and (not needDisp or nz(lastDispBull, -1) >= sslSweep)
+bearMss = not na(bslSweep) and bar_index - bslSweep <= mssWin and xDn and nz(bearFor, -1) != bslSweep and (not needDisp or nz(lastDispBear, -1) >= bslSweep)
+if bullMss
+    bullFor := sslSweep
+    label.new(bar_index, high, "MSS▲", style = label.style_label_down, color = color.new(cBull, 30), textcolor = color.white, size = size.tiny)
+if bearMss
+    bearFor := bslSweep
+    label.new(bar_index, low, "MSS▼", style = label.style_label_up, color = color.new(cBear, 30), textcolor = color.white, size = size.tiny)
+
+// ───────────── რისკის გამოთვლა ─────────────
+pv       = pvSel == "ავტო" ? syminfo.pointvalue : str.tonumber(array.get(str.split(pvSel, " "), 1))
+riskBase = useEquity ? strategy.equity : strategy.initial_capital
+dayPnL   = strategy.netprofit - netDayStart
+guardOk  = tradesToday < maxTrades and lossesToday < maxLosses and dayPnL > -riskBase * dayLossP / 100 and not (oneDone and winsToday > 0)
+flat     = strategy.position_size == 0
+
+findTarget(bool isLong, float entry, float minDist) =>
+    float best = na
+    if array.size(liqs) > 0
+        for i = 0 to array.size(liqs) - 1
+            Liq q = array.get(liqs, i)
+            if isLong and q.hi and q.p - entry >= minDist
+                best := na(best) ? q.p : math.min(best, q.p)
+            if not isLong and not q.hi and entry - q.p >= minDist
+                best := na(best) ? q.p : math.max(best, q.p)
+    best
+
+var float tEntry = na
+var float tStop  = na
+var float tTp1   = na
+var float tTp    = na
+var int   tQty   = 0
+var int   pendBar = na
+var bool  beDone = false
+var float riskUsdAtEntry = na
+var float netAtEntry = 0.0
+var int   totTrades = 0
+var int   totWins = 0
+var float totR = 0.0
+
+place(bool isLong, float e, float s, float tgt, int q) =>
+    string id = isLong ? "L" : "S"
+    float r = math.abs(e - s)
+    float tp1 = isLong ? e + r * tp1R : e - r * tp1R
+    strategy.entry(id, isLong ? strategy.long : strategy.short, qty = q, limit = entryMode == "FVG ლიმიტი" ? e : na)
+    if usePart and q >= 2
+        strategy.exit(id + "-TP1", id, qty_percent = 50, limit = tp1, stop = s, comment_profit = "TP1", comment_loss = "SL")
+        strategy.exit(id + "-TP2", id, limit = tgt, stop = s, comment_profit = "TP2", comment_loss = "SL")
+    else
+        strategy.exit(id + "-TP2", id, limit = tgt, stop = s, comment_profit = "TP", comment_loss = "SL")
+    color c = isLong ? cBull : cBear
+    line.new(bar_index, e, bar_index + fillWin, e, color = color.new(c, 0), width = 1)
+    line.new(bar_index, s, bar_index + fillWin, s, color = color.new(cBear, 30), style = line.style_dashed)
+    line.new(bar_index, tgt, bar_index + fillWin, tgt, color = color.new(cBull, 30), style = line.style_dashed)
+    string msg = "bee BOT " + (isLong ? "▲ LONG " : "▼ SHORT ") + syminfo.ticker + " | შესვლა " + str.tostring(e, format.mintick) + " | სტოპი " + str.tostring(s, format.mintick) + " | TP1 " + str.tostring(tp1, format.mintick) + " | TP " + str.tostring(tgt, format.mintick) + " | კონტრაქტი " + str.tostring(q)
+    alert(msg, alert.freq_once_per_bar_close)
+    tp1
+
+trySignal(bool isLong) =>
+    int   swBar = isLong ? sslSweep : bslSweep
+    float ext   = isLong ? setupLow : setupHigh
+    int   fBar  = isLong ? bBar : sBar
+    float fEdge = isLong ? bTop : sBot
+    float fMid  = isLong ? (bTop + bBot) / 2 : (sTop + sBot) / 2
+    float e = entryMode == "MSS სანთლის დახურვა" ? close : (not na(fBar) and fBar >= swBar ? (entryLvl == "FVG შუა (CE)" ? fMid : fEdge) : na)
+    float s = isLong ? ext - stopBuf : ext + stopBuf
+    float r = na(e) ? na : (isLong ? e - s : s - e)
+    float tgt = na
+    int q = 0
+    if not na(r) and r > 0
+        tgt := tpMode == "ლიკვიდობა" ? findTarget(isLong, e, r * minRR) : (isLong ? e + r * fixedR : e - r * fixedR)
+        q := math.floor(riskBase * riskP / 100 / (r * pv))
+    [e, s, tgt, q]
+
+pdOkL = not usePD or (not na(pdMid) and close < pdMid)
+pdOkS = not usePD or (not na(pdMid) and close > pdMid)
+htfOkL = not useHtfFvg or (not na(lastHtfBull) and not na(sslSweep) and lastHtfBull >= sslSweep - mssWin)
+htfOkS = not useHtfFvg or (not na(lastHtfBear) and not na(bslSweep) and lastHtfBear >= bslSweep - mssWin)
+
+[eL, sL, tL, qL] = trySignal(true)
+[eS, sS, tS, qS] = trySignal(false)
+
+if flat and inSess and guardOk
+    if bullMss and allowL and pdOkL and htfOkL and not na(tL) and qL >= 1
+        netAtEntry := strategy.netprofit
+        tTp1 := place(true, eL, sL, tL, qL)
+        tEntry := eL
+        tStop := sL
+        tTp := tL
+        tQty := qL
+        pendBar := bar_index
+        riskUsdAtEntry := math.abs(eL - sL) * qL * pv
+    else if bearMss and allowS and pdOkS and htfOkS and not na(tS) and qS >= 1
+        netAtEntry := strategy.netprofit
+        tTp1 := place(false, eS, sS, tS, qS)
+        tEntry := eS
+        tStop := sS
+        tTp := tS
+        tQty := qS
+        pendBar := bar_index
+        riskUsdAtEntry := math.abs(eS - sS) * qS * pv
+
+// ლიმიტი ვადაგასულია ან სესია დასრულდა
+if flat and not na(pendBar) and (bar_index - pendBar > fillWin or not inSess)
+    strategy.cancel("L")
+    strategy.cancel("S")
+    pendBar := na
+
+// პოზიცია გაიხსნა
+if not flat and flat[1]
+    tradesToday += 1
+    pendBar := na
+    beDone := false
+
+// TP1-ის შემდეგ სტოპი შესვლაზე
+if not flat and usePart and not beDone and math.abs(strategy.position_size) < tQty
+    beDone := true
+    if strategy.position_size > 0
+        strategy.exit("L-TP2", "L", limit = tTp, stop = strategy.position_avg_price, comment_profit = "TP2", comment_loss = "BE")
+    else
+        strategy.exit("S-TP2", "S", limit = tTp, stop = strategy.position_avg_price, comment_profit = "TP2", comment_loss = "BE")
+
+// პოზიცია მთლიანად დაიხურა
+if flat and strategy.closedtrades > strategy.closedtrades[1]
+    if flat[1]
+        tradesToday += 1
+    float pnl = strategy.netprofit - netAtEntry
+    totTrades += 1
+    if pnl > 0
+        totWins += 1
+        winsToday += 1
+    else if pnl < 0
+        lossesToday += 1
+    if riskUsdAtEntry > 0
+        totR += pnl / riskUsdAtEntry
+
+// სესიის ბოლოს ყველაფერი იხურება
+if not inHold and not flat
+    strategy.close_all(comment = "სესიის დასასრული")
+
+// ───────────── პანელი ─────────────
+var table tb = table.new(position.top_right, 2, 12, bgcolor = color.new(#18202a, 8), border_color = color.new(#2a3542, 0), border_width = 1)
+cell(int r, string k, string v, color vc) =>
+    table.cell(tb, 0, r, k, text_color = color.new(#e6ebf1, 0), text_size = size.small, text_halign = text.align_left)
+    table.cell(tb, 1, r, v, text_color = vc, text_size = size.small, text_halign = text.align_left)
+
+if showTbl and barstate.islast
+    color w = color.new(#e6ebf1, 0)
+    float pf = strategy.grossloss > 0 ? strategy.grossprofit / strategy.grossloss : na
+    float wr = totTrades > 0 ? float(totWins) / totTrades * 100 : na
+    float avgR = totTrades > 0 ? totR / totTrades : na
+    float ddPct = strategy.initial_capital > 0 ? strategy.max_drawdown / strategy.initial_capital * 100 : na
+    cell(0, "bee BOT", biasAuto == 1 ? "მაკრო ▲" : biasAuto == -1 ? "მაკრო ▼" : "მაკრო —", biasAuto == 1 ? cBull : biasAuto == -1 ? cBear : color.gray)
+    cell(1, "ვაჭრობები", str.tostring(totTrades) + (totTrades < 100 ? "  (მცირეა <100)" : ""), totTrades < 100 ? color.orange : w)
+    cell(2, "Win rate", na(wr) ? "—" : str.tostring(wr, "#.#") + "%", w)
+    cell(3, "საშ. R", na(avgR) ? "—" : str.tostring(avgR, "#.##") + "R", nz(avgR) > 0 ? cBull : cBear)
+    cell(4, "Profit factor", na(pf) ? "—" : str.tostring(pf, "#.##"), nz(pf) >= 1.3 ? cBull : nz(pf) >= 1 ? color.orange : cBear)
+    cell(5, "წმინდა მოგება", "$" + str.tostring(strategy.netprofit, "#,###"), strategy.netprofit >= 0 ? cBull : cBear)
+    cell(6, "Max drawdown", "$" + str.tostring(strategy.max_drawdown, "#,###") + " (" + str.tostring(ddPct, "#.#") + "%)", nz(ddPct) > 10 ? cBear : w)
+    cell(7, "დღეს", str.tostring(tradesToday) + "/" + str.tostring(maxTrades) + " ვაჭრ. · " + str.tostring(lossesToday) + "/" + str.tostring(maxLosses) + " წაგ.", w)
+    cell(8, "დამცავები", guardOk ? "✓ ვაჭრობა შეიძლება" : "⛔ დღეს საკმარისია", guardOk ? cBull : cBear)
+    cell(9, "ფანჯარა", inSess ? "✓ ღიაა" : "დახურულია", inSess ? cBull : color.gray)
+    cell(10, "პოზიცია", flat ? (na(pendBar) ? "არ არის" : "ლიმიტი ელოდება") : (strategy.position_size > 0 ? "LONG " : "SHORT ") + str.tostring(math.abs(strategy.position_size)), w)
+    cell(11, "შეხსენება", "ნიუსი შეამოწმე · ჯერ დემო", color.gray)

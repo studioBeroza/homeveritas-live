@@ -150,7 +150,63 @@ td.r{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
     <a href="#learn">ცნებები</a>
     <a href="#journal">ჟურნალი</a>
     <a href="#live">⚡ ლაივ ინდიკატორი</a>
+    <a href="#bot">🤖 ბოტი</a>
   </div></nav>
+
+  <!-- ============ BOT ============ -->
+  <section class="view" id="v-bot" hidden>
+    <div>
+      <h2>bee ICT ბოტი</h2>
+      <p class="lead">ეს დამხმარე ბოტი TradingView-ის Strategy-ია. <b>ჯერ თვითონ დაითვლის</b>, როგორ იმუშავებდა მისი წესები წარსულში: ვაჭრობები, win rate, drawdown. მერე ლაივში ზუსტ სიგნალს გამოგიგზავნის: შესვლა, სტოპი, TP, კონტრაქტები. ვაჭრობას შენ ხსნი. ბოტს ფულზე წვდომა არ აქვს.</p>
+    </div>
+
+    <div class="grid2">
+      <div class="card" style="display:grid;gap:10px;align-content:start">
+        <h3>სამი ფენა: ერთი სისტემა</h3>
+        <div class="eps">
+          <div class="eprow"><span class="num">1</span><span><b>მაკრო (4H)</b>: მიმართულება. Long მხოლოდ bullish სტრუქტურაში, Short bearish-ში. სურვილისამებრ premium/discount ფილტრიც.</span><span class="ep">ეპ. 3, 16</span></div>
+          <div class="eprow"><span class="num">2</span><span><b>ზონა (1H)</b>: სურვილისამებრ, ფასი უნდა შეეხოს 1H FVG-ს.</span><span class="ep">15-წამ. სტრატ.</span></div>
+          <div class="eprow"><span class="num">3</span><span><b>შესვლა (1m/5m)</b>: Sweep → Displacement → MSS → ლიმიტი FVG-ზე. სტოპი sweep-ის მიღმაა, სამიზნე საპირისპირო ლიკვიდობა.</span><span class="ep">ეპ. 9–11</span></div>
+          <div class="eprow"><span class="num">⏱</span><span><b>დრო</b>: ახალი ვაჭრობა მხოლოდ 9:30–11:00 NY-ზე. 15:45-ზე პოზიცია ყოველთვის იხურება.</span><span class="ep">ეპ. 16</span></div>
+          <div class="eprow"><span class="num">🛡</span><span><b>დამცავები</b>: ≤0.5% რისკი, მაქს. 2 ვაჭრობა და 2 წაგება დღეში, დღის ლიმიტი −1.5%. ვაჭრობა გამოტოვდება, თუ R:R &lt; 2. TP1-ზე 50% იხურება და სტოპი შესვლაზე გადადის.</span><span class="ep">ეპ. 4, 8, 15, 17</span></div>
+        </div>
+      </div>
+      <div class="card" style="display:grid;gap:10px;align-content:start">
+        <h3>ნაბიჯ-ნაბიჯ</h3>
+        <ol style="margin:0;padding-left:20px;display:grid;gap:6px;font-size:.92rem">
+          <li><b>კოპირება</b> → TradingView → Pine Editor → ჩასმა → Save → Add to chart.</li>
+          <li>გახსენი <b>MNQ1!</b> (ან NQ1!) და აირჩიე <b>1m ან 5m</b> ჩარტი.</li>
+          <li>ქვემოთ გახსენი <b>Strategy Tester</b> და ნახე Overview, List of trades, Equity.</li>
+          <li>⚙ → Properties: Initial capital = შენი დემო-ანგარიში.</li>
+          <li>თუ შედეგი ქვემოთ მოცემულ კრიტერიუმებს აკმაყოფილებს, ჩართე <b>Alert</b>: Condition: bee BOT → „alert() function calls only“.</li>
+          <li><b>2–4 კვირა დემოზე</b> ისე, რომ ყველა სიგნალს მიჰყვე. ყველა ვაჭრობა ჟურნალში ჩაწერე.</li>
+        </ol>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button type="button" class="btn primary" id="botCopy">ბოტის კოდის კოპირება</button>
+          <span class="sub" id="botMsg"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="display:grid;gap:10px">
+      <h3>როგორ წაიკითხო შედეგი (Facebook პოსტის გაკვეთილები)</h3>
+      <p class="sub" style="margin:0">იმ ბოტის სქრინშოტში ლამაზი ციფრები ჩანდა, მაგრამ მნიშვნელოვანი ინფორმაცია აკლდა. ჩვენ ზუსტად იმას ვამოწმებთ, რაც იქ არ ჩანდა:</p>
+      <div class="tbl"><table style="min-width:560px">
+        <thead><tr><th>მაჩვენებელი</th><th>კარგი</th><th>საეჭვო</th><th>რატომ</th></tr></thead>
+        <tbody>
+          <tr><td>ვაჭრობების რაოდენობა</td><td class="pos">≥ 100</td><td class="neg">&lt; 50</td><td>ცოტა ვაჭრობაზე შედეგი შეიძლება უბრალოდ იღბალი იყოს</td></tr>
+          <tr><td>Profit factor</td><td class="pos">≥ 1.3</td><td class="neg">&lt; 1.1</td><td>მოგება / წაგება. 1.0-ზე ცოტა მეტი საკომისიოში იკარგება</td></tr>
+          <tr><td>Max drawdown</td><td class="pos">&lt; 10%</td><td class="neg">&gt; 20%</td><td>ამ ციფრს პოსტი არ აჩვენებდა. prop firm-ის უმეტესობა ~5–10%-ზე გაჩერებს</td></tr>
+          <tr><td>Equity მრუდი</td><td class="pos">თანაბრად ადის</td><td class="neg">1–2 ნახტომი</td><td>პოსტში მოგების ~⅓ ერთ ნახტომზე მოდიოდა. ეს იღბალია და არა სისტემა</td></tr>
+          <tr><td>სხვადასხვა პერიოდი</td><td class="pos">ყველგან პლიუსშია</td><td class="neg">მხოლოდ ერთ თვეში</td><td>შეამოწმე სხვა თვეებზე და ES-ზეც. ერთ პერიოდზე „მორგებული“ პარამეტრები ლაივში ტყდება</td></tr>
+          <tr><td>საშ. R</td><td class="pos">&gt; 0.2R</td><td class="neg">≈ 0</td><td>საშუალოდ რამდენ რისკს იგებ ერთ ვაჭრობაზე</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">⚠ პარამეტრებს ნუ შეცვლი იქამდე, სანამ ტესტერი „ლამაზს“ არ გაჩვენებს. ეს ყველაზე ხშირი შეცდომაა (overfitting). ერთ ჯერზე ერთი ფილტრი შეცვალე (მაგ. premium/discount ჩართვა). ყოველი ცვლილების შედეგი ჟურნალის შენიშვნაში ჩაწერე და მერე სხვა პერიოდზე გადაამოწმე. TradingView-ის უფასო გეგმაზე 1m ჩარტის ისტორია მოკლეა, ამიტომ 5m-ზე მეტ ვაჭრობას ნახავ.</p>
+    </div>
+
+    <details class="card sk"><summary>ბოტის კოდის ნახვა</summary><pre id="botCode" style="overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.5;margin:12px 0 0;max-height:420px">იტვირთება…</pre></details>
+  </section>
 
   <!-- ============ LIVE INDICATOR ============ -->
   <section class="view" id="v-live" hidden>
@@ -375,7 +431,14 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 /* ---------- routing ---------- */
-const VIEWS=["checklist","calc","clock","trainer","learn","journal","live"];
+const VIEWS=["checklist","calc","clock","trainer","learn","journal","live","bot"];
+let botTxt="";
+fetch("bee-bot.pine").then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>{botTxt=t;$("#botCode").textContent=t;$("#botMsg").textContent=t.split("\n").length+" ხაზი, Pine Script v5"}).catch(()=>{$("#botCode").textContent="კოდი ვერ ჩაიტვირთა. განაახლე გვერდი.";});
+$("#botCopy").addEventListener("click",()=>{
+  if(!botTxt){$("#botMsg").textContent="კოდი ჯერ იტვირთება…";return}
+  const sel=()=>{const d=$("#botCode").closest("details");d.open=true;const r=document.createRange();r.selectNodeContents($("#botCode"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("#botMsg").textContent="მონიშნულია. დააჭირე Ctrl+C."};
+  try{navigator.clipboard.writeText(botTxt).then(()=>{$("#botMsg").textContent="✓ დაკოპირდა! ახლა ჩასვი Pine Editor-ში."},sel)}catch(e){sel()}
+});
 let pineTxt="";
 fetch("bee-ict.pine").then(r=>{if(!r.ok)throw 0;return r.text()}).then(t=>{pineTxt=t;$("#pineCode").textContent=t;$("#pineMsg").textContent=t.split("\n").length+" ხაზი, Pine Script v5"}).catch(()=>{$("#pineCode").textContent="კოდი ვერ ჩაიტვირთა. განაახლე გვერდი.";});
 $("#pineCopy").addEventListener("click",()=>{
