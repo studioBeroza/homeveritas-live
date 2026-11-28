@@ -107,6 +107,26 @@ canvas{display:block;width:100%;height:380px;cursor:crosshair;touch-action:manip
 .quiz{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
 .quiz .q{font-weight:600}
 .fb{min-height:1.6em;font-size:.92rem}
+/* setup anatomy */
+.anat{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.anat{grid-template-columns:1fr}}
+.anat svg{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.anat .txt{display:grid;gap:10px;align-content:start}
+.anat .stepno{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.anat .ttl{font-size:1.15rem;font-weight:700;line-height:1.35}
+.anat .what,.anat .why{margin:0;font-size:.92rem}
+.anat .why{padding:10px 12px;border-radius:8px;background:var(--chip);color:var(--muted)}
+.anat .look{margin:0;font-size:.88rem;padding:10px 12px;border-radius:8px;background:var(--acc-soft)}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots button{width:28px;height:28px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font:600 .75rem var(--mono);cursor:pointer;padding:0}
+.dots button[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dots button.done{color:var(--ink);border-color:var(--muted)}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rbars{display:grid;gap:10px}
+.rbar{display:grid;grid-template-columns:9.5em 1fr;gap:10px;align-items:center;font-size:.86rem}
+.rbar .track{display:grid;gap:3px}
+.rbar .b{height:14px;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font:600 .72rem var(--mono);color:#fff;min-width:2.5em}
+@media (max-width:520px){.rbar{grid-template-columns:1fr}}
 /* learn */
 .concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
 .concept{display:grid;gap:8px;align-content:start}
@@ -172,6 +192,12 @@ td.r{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
         <div class="kv"><span>Profit factor</span><strong>1.00</strong></div>
         <div class="kv"><span>ჯამი</span><strong>+2.3R</strong></div>
         <div class="kv"><span>Max drawdown</span><strong>8.8%</strong></div>
+      </div>
+      <div style="display:grid;gap:8px">
+        <h3>რას ნიშნავს „PF 1.00“? რამდენსაც იგებ, დაახლოებით იმდენსვე აგებ</h3>
+        <p class="sub" style="margin:0">მწვანე ზოლი არის ყველა მოგებული ვაჭრობის ჯამი, წითელი ყველა წაგებულის ჯამი. ორივე R-შია: 1R = ერთ ვაჭრობაზე დარისკული თანხა.</p>
+        <div class="rbars" id="rbars"></div>
+        <p class="sub" style="margin:0">ზოლები თითქმის თანაბარია. ესე იგი, 10 წლის განმავლობაში ბოტი ძირითადად ერთსა და იმავე ფულს ატრიალებდა. bias-ის გარეშე (F) წაგებული ზოლი მოგებულზე 74R-ით გრძელია, $50k ანგარიშზე ეს დაახლოებით −$18,500-ია.</p>
       </div>
       <div>
         <span class="sub">ჯამური შედეგი R-ში, ვაჭრობიდან ვაჭრობამდე (1-წუთიანი ჩარტი):</span>
@@ -313,7 +339,7 @@ td.r{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
   <section class="view" id="v-checklist">
     <div>
       <h2>შესვლამდე ჩეკლისტი</h2>
-      <p class="lead">bee-ს მოდელი ნაბიჯ-ნაბიჯ: <b>ანალიზი მაღალ თაიმფრეიმზე, შესვლა დაბალზე</b>. მონიშნე, რაც ჩარტზე ნამდვილად ხედავ. თუ რომელიმე ნაბიჯი არ იცი, დააჭირე „?“-ს.</p>
+      <p class="lead">bee-ს მოდელი ნაბიჯ-ნაბიჯ: <b>ანალიზი მაღალ თაიმფრეიმზე, შესვლა დაბალზე</b>. მონიშნე, რაც ჩარტზე ნამდვილად ხედავ. თუ რომელიმე ნაბიჯი არ იცი, დააჭირე „?“-ს. ჯერ ვიზუალურად გინდა ნახვა? გახსენი <a href="#learn" style="color:var(--accent);font-weight:600">სეტაპის ანატომია →</a></p>
     </div>
     <div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -441,6 +467,31 @@ td.r{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
     <div>
       <h2>ცნებები მარტივად</h2>
       <p class="lead">თითოეული ცნება: მოკლე განმარტება, პატარა ნახატი და ეპიზოდი, სადაც bee მას ხსნის.</p>
+    </div>
+    <div class="card" id="anatomy" style="display:grid;gap:14px">
+      <div style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between">
+        <div><h3 style="font-size:1.1rem">სეტაპის ანატომია: ნაბიჯ-ნაბიჯ</h3><p class="sub">bee-ს მოდელი ერთ ჩარტზე. დააჭირე „შემდეგს“ და ჩარტი ცოცხალ ბაზარზე მსგავსად, სანთელ-სანთელ გაიშლება.</p></div>
+        <div class="seg" role="group" aria-label="მაგალითის მიმართულება">
+          <button type="button" class="long" id="anL" aria-pressed="true">▲ Long</button>
+          <button type="button" class="short" id="anS" aria-pressed="false">▼ Short</button>
+        </div>
+      </div>
+      <div class="anat">
+        <div id="anSvg" aria-live="polite"></div>
+        <div class="txt">
+          <span class="stepno" id="anNo"></span>
+          <div class="ttl" id="anTtl"></div>
+          <p class="what" id="anWhat"></p>
+          <p class="look" id="anLook"></p>
+          <p class="why" id="anWhy"></p>
+        </div>
+      </div>
+      <div class="ctrl">
+        <button type="button" class="btn" id="anPrev">◀ წინა</button>
+        <button type="button" class="btn primary" id="anNext">შემდეგი ▶</button>
+        <button type="button" class="btn small" id="anPlay">▶ ავტომატურად</button>
+        <div class="dots" id="anDots" role="group" aria-label="ნაბიჯები"></div>
+      </div>
     </div>
     <div class="concepts" id="concepts"></div>
     <div class="card">
@@ -848,6 +899,124 @@ const BT_CURVES={"A":[[2010.041,2.36],[2010.071,1.34],[2010.079,3.61],[2010.087,
   ["F","A","D"].forEach(k=>{const pts=BT_CURVES[k];s+=`<polyline fill="none" stroke="${col[k]}" stroke-width="${k==="A"?2.2:1.6}" stroke-linejoin="round" points="${X(x0)},${Y(0)} ${pts.map(p=>X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ")}"/>`;
     const e=pts[pts.length-1];s+=`<circle cx="${X(e[0])}" cy="${Y(e[1])}" r="3.5" fill="${col[k]}"/><text x="${X(e[0])-6}" y="${Y(e[1])+(k==="F"?-10:k==="D"?-12:20)}" text-anchor="end" font-size="11" font-weight="600" font-family="var(--mono)" fill="${col[k]}">${k} ${e[1]>0?"+":""}${e[1].toFixed(1)}R</text>`});
   $("#btChart").innerHTML=s+"</svg>";
+})();
+
+/* ---------- setup anatomy ---------- */
+(function(){
+  const C=[[70,74,68,73],[73,78,72,77],[77,78.2,73,74],[74,75,68,69],[69,70,63,64],[64,65,57,58],[58,59,51,52],[52,53,46,47],[47,49,42,44],[44,47,40.2,46],[46,51,45,50],[50,52.5,48,49],[49,50,44,45],[45,46,40,41],[41,44,40.5,43],[43,43.5,41,42],[42,42.5,37,41.5],[41.5,47,41,46.5],[46.5,55,46,54.5],[54.5,57,50.5,56],[56,57.5,53,54],[54,54.5,49.5,50.5],[50.5,53,48.5,52.5],[52.5,57,52,56.5],[56.5,61,56,60.5],[60.5,65,60,64.5],[64.5,68,63,67.5],[67.5,72,67,71.5],[71.5,75,70.5,74],[74,78.8,73.5,78],[78,79,75,76]];
+  const LV={bsl:78.2,ssl:40,sweep:37,mss:52.5,fT:50.5,fB:47,entry:50.5,stop:36.5,tp1:64.5,tp:78.2,htfT:46,htfB:38};
+  let dir=1, step=0, timer=null;
+  const L=dir=>dir===1;
+  const W=t=>(dir===1?t[0]:t[1]);
+  const S=[
+    {upto:15,t:["კონტექსტი: მაღალი თაიმფრეიმი","კონტექსტი: მაღალი თაიმფრეიმი"],
+     w:["4H-ზე ტრენდი ზემოთაა (bullish), ახლა კი ფასი ეცემა და 4H-ის FVG ზონას უახლოვდება. ჩვენ ვარდნაზე Short-ს არ ვეძებთ. ველოდებით, როდის დამთავრდება ეს ვარდნა 4H ზონაში.","4H-ზე ტრენდი ქვემოთაა (bearish), ახლა კი ფასი იზრდება და 4H-ის FVG ზონას უახლოვდება. ზრდაზე Long-ს არ ვეძებთ. ველოდებით, როდის დამთავრდება ეს ზრდა 4H ზონაში."],
+     k:["4H ჩარტი: ტრენდი და უახლოესი FVG ან Order Block.","4H ჩარტი: ტრენდი და უახლოესი FVG ან Order Block."],
+     y:"ეპ. 14, 16: „ანალიზი მაღალ თაიმფრეიმზე“. ჩვენმა ტესტმაც აჩვენა, რომ ამ ფილტრის გარეშე ბოტი −74R-ს კარგავს."},
+    {upto:15,t:["ლიკვიდობა: სად დგას სხვების სტოპები?","ლიკვიდობა: სად დგას სხვების სტოპები?"],
+     w:["ორი თითქმის თანაბარი მინიმუმი (SSL) ჩანს. მათ ქვემოთ ბევრი ტრეიდერის სტოპ-ლოსია. ზემოთ, ძველ მაქსიმუმებზე (BSL), ასევე სტოპებია. ეს ჩვენი სამიზნე იქნება.","ორი თითქმის თანაბარი მაქსიმუმი (BSL) ჩანს. მათ ზემოთ ბევრი ტრეიდერის სტოპ-ლოსია. ქვემოთ, ძველ მინიმუმებზე (SSL), ასევე სტოპებია. ეს ჩვენი სამიზნე იქნება."],
+     k:["„თანაბარი მინიმუმები“ (equal lows) და ძველი მაქსიმუმები.","„თანაბარი მაქსიმუმები“ (equal highs) და ძველი მინიმუმები."],
+     y:"ეპ. 10: ფასი ლიკვიდობისკენ მიდის. დიდ მოთამაშეებს ბევრი ორდერი სჭირდებათ, ასეთი ორდერები კი სხვების სტოპებშია."},
+    {upto:16,t:["Sweep: სტოპები აიღო","Sweep: სტოპები აიღო"],
+     w:["ფასმა ჩრდილით თანაბარი მინიმუმები გაარღვია და სტოპები „ამოიღო“, მაგრამ სანთელი მათ <b>ზემოთ</b> დაიხურა. ვინც აქ Short-ში შევიდა, გაბრაზდება.","ფასმა ჩრდილით თანაბარი მაქსიმუმები გაარღვია და სტოპები „ამოიღო“, მაგრამ სანთელი მათ <b>ქვემოთ</b> დაიხურა. ვინც აქ Long-ში შევიდა, გაბრაზდება."],
+     k:["გრძელი ქვედა ჩრდილი და დახურვა დონის ზემოთ.","გრძელი ზედა ჩრდილი და დახურვა დონის ქვემოთ."],
+     y:"თუ სანთელი დონის მიღმა დაიხურა, ეს sweep კი არა, ნამდვილი გარღვევაა. მაშინ ვაჭრობა არ გვაქვს."},
+    {upto:18,t:["Displacement: ძლიერი მოძრაობა","Displacement: ძლიერი მოძრაობა"],
+     w:["ორი დიდტანიანი მწვანე სანთელი ჩანს, თითქმის ჩრდილების გარეშე. ფასი გადამწყვეტად შემობრუნდა. ეს ნიშნავს, რომ მოძრაობაში დიდი ფული ჩაერთო.","ორი დიდტანიანი წითელი სანთელი ჩანს, თითქმის ჩრდილების გარეშე. ფასი გადამწყვეტად შემობრუნდა. ეს ნიშნავს, რომ მოძრაობაში დიდი ფული ჩაერთო."],
+     k:["სანთლები, რომლებიც ბოლო რამდენიმეზე ბევრად დიდია.","სანთლები, რომლებიც ბოლო რამდენიმეზე ბევრად დიდია."],
+     y:"bee: „displacement-ის გარეშე ვაჭრობა დაბალი ალბათობისაა“. პატარა, ნელი შემობრუნება ხშირად ტყუილია."},
+    {upto:18,t:["MSS: სტრუქტურა გატყდა","MSS: სტრუქტურა გატყდა"],
+     w:["ფასი ბოლო შიდა მაქსიმუმის ზემოთ დაიხურა. ვარდნისას ფასი დაბალ მაქსიმუმებს ქმნიდა, ახლა კი ეს თანმიმდევრობა დაირღვა და მიმართულება შეიცვალა.","ფასი ბოლო შიდა მინიმუმის ქვემოთ დაიხურა. ზრდისას ფასი მაღალ მინიმუმებს ქმნიდა, ახლა კი ეს თანმიმდევრობა დაირღვა და მიმართულება შეიცვალა."],
+     k:["სანთლის <b>ტანის</b> დახურვა დონის მიღმა. მხოლოდ ჩრდილი არ ითვლება.","სანთლის <b>ტანის</b> დახურვა დონის მიღმა. მხოლოდ ჩრდილი არ ითვლება."],
+     y:"ეპ. 10: Sweep → MSS არის შემობრუნების ძირითადი დასტური. ამ ორის გარეშე ვაჭრობა უბრალოდ გამოცნობაა."},
+    {upto:19,t:["FVG: შესვლის ზონა","FVG: შესვლის ზონა"],
+     w:["ძლიერმა მოძრაობამ „ხვრელი“ დატოვა: 1-ელი სანთლის მაქსიმუმი და მე-3-ის მინიმუმი ერთმანეთს არ ეხება. ფასი ხშირად ბრუნდება ამ ზონაში, სანამ გააგრძელებს.","ძლიერმა მოძრაობამ „ხვრელი“ დატოვა: 1-ელი სანთლის მინიმუმი და მე-3-ის მაქსიმუმი ერთმანეთს არ ეხება. ფასი ხშირად ბრუნდება ამ ზონაში, სანამ გააგრძელებს."],
+     k:["სამი სანთელი, რომელთა შუაში ცარიელი ადგილი რჩება.","სამი სანთელი, რომელთა შუაში ცარიელი ადგილი რჩება."],
+     y:"ეპ. 9: მოძრაობას არ ვეკიდებით. ველოდებით, როდის დაბრუნდება ფასი ჩვენს ზონაში, და ვიღებთ უკეთეს ფასს პატარა სტოპით."},
+    {upto:21,t:["შესვლა, სტოპი, სამიზნე","შესვლა, სტოპი, სამიზნე"],
+     w:["ფასი FVG-ში დაბრუნდა და ლიმიტ-ორდერი შესრულდა. სტოპი sweep-ის მინიმუმის ქვემოთაა: თუ ფასი იქამდე ჩამოვა, იდეა აღარ მოქმედებს. სამიზნე ძველი მაქსიმუმების ლიკვიდობაა (BSL).","ფასი FVG-ში დაბრუნდა და ლიმიტ-ორდერი შესრულდა. სტოპი sweep-ის მაქსიმუმის ზემოთაა: თუ ფასი იქამდე ავა, იდეა აღარ მოქმედებს. სამიზნე ძველი მინიმუმების ლიკვიდობაა (SSL)."],
+     k:["R:R ≈ 1:2. მოგება რისკზე ორჯერ მეტია. კონტრაქტები კალკულატორით დაითვალე.","R:R ≈ 1:2. მოგება რისკზე ორჯერ მეტია. კონტრაქტები კალკულატორით დაითვალე."],
+     y:"ეპ. 4: სტოპი იქ დგას, სადაც იდეა აღარ მოქმედებს, და არა „რამდენის დაკარგვაც არ მენანება“. ზომას რისკის %-ით ვითვლით."},
+    {upto:30,t:["შედეგი: TP1 → BE → TP","შედეგი: TP1 → BE → TP"],
+     w:["+1R-ზე პოზიციის ნახევარი დაიხურა (TP1) და სტოპი შესვლის ფასზე გადავიდა (BE). ამის შემდეგ ვაჭრობა ვეღარ წააგებს. დარჩენილმა ნახევარმა BSL-ს მიაღწია. ჯამში ≈ +1.5R.","+1R-ზე პოზიციის ნახევარი დაიხურა (TP1) და სტოპი შესვლის ფასზე გადავიდა (BE). ამის შემდეგ ვაჭრობა ვეღარ წააგებს. დარჩენილმა ნახევარმა SSL-ს მიაღწია. ჯამში ≈ +1.5R."],
+     k:["ჩაწერე ჟურნალში: სეტაპი, R, წესები დაიცავი თუ არა.","ჩაწერე ჟურნალში: სეტაპი, R, წესები დაიცავი თუ არა."],
+     y:"ეს „იდეალური“ მაგალითია. რეალურად ასეთი ვაჭრობების ~50% სტოპით ან BE-ზე იხურება (ჩვენი ტესტი: win 49%). ამიტომ რისკის წესები ყველაფერზე მნიშვნელოვანია."}
+  ];
+  function fy(v){return dir===1?v:120-v}
+  function cdl(c){return dir===1?c:[120-c[0],120-c[2],120-c[1],120-c[3]]}
+  function draw(){
+    const st=S[step], w=760, hgt=380, pl=12, pr=118, pt=34, pb=18, n=C.length, sp=(w-pl-pr)/n;
+    const vals=C.flat().map(fy), lo=Math.min(...vals,fy(LV.stop))-2, hi=Math.max(...vals,fy(LV.stop))+2;
+    const X=i=>pl+i*sp+sp/2, Y=v=>pt+(hi-fy(v))/(hi-lo)*(hgt-pt-pb);
+    const up=dir===1, bull="var(--bull)", bear="var(--bear)", ink="var(--ink)", mut="var(--muted)", acc="var(--accent)";
+    const on=k=>step>=k, cur=k=>step===k, op=k=>cur(k)?1:.45;
+    let s=`<svg viewBox="0 0 ${w} ${hgt}" role="img" aria-label="${S[step].t[0]}">`;
+    const lab=(y,txt,col,o=1)=>`<text x="${w-pr+8}" y="${y+4}" font-size="12" font-weight="600" font-family="var(--font)" fill="${col}" opacity="${o}">${txt}</text>`;
+    // HTF zone (step 0+)
+    s+=`<rect x="${X(9)}" y="${Math.min(Y(LV.htfT),Y(LV.htfB))}" width="${w-pr-X(9)}" height="${Math.abs(Y(LV.htfB)-Y(LV.htfT))}" fill="var(--acc-soft)" stroke="${acc}" stroke-dasharray="5 4" opacity="${op(0)}"/>`;
+    s+=`<text x="${X(9)+6}" y="${up?Y(LV.htfB)-6:Y(LV.htfB)+16}" font-size="12" font-weight="700" font-family="var(--font)" fill="${acc}" opacity="${op(0)}">4H FVG ზონა</text>`;
+    s+=`<text x="${pl+4}" y="20" font-size="13" font-weight="700" font-family="var(--font)" fill="${up?bull:bear}">4H bias: ${up?"▲ Bullish":"▼ Bearish"}</text>`;
+    // liquidity
+    if(on(1)){
+      s+=`<line x1="${X(1)}" x2="${on(7)?X(29):w-pr}" y1="${Y(LV.bsl)}" y2="${Y(LV.bsl)}" stroke="${ink}" stroke-dasharray="6 4" opacity="${op(1)}"/>`+lab(Y(LV.bsl),up?"BSL (სამიზნე)":"SSL (სამიზნე)",ink,op(1));
+      s+=`<line x1="${X(9)}" x2="${on(2)?X(16):w-pr}" y1="${Y(LV.ssl)}" y2="${Y(LV.ssl)}" stroke="${ink}" stroke-dasharray="6 4" opacity="${op(1)}"/>`+lab(Y(LV.ssl),up?"SSL: სტოპები":"BSL: სტოპები",ink,op(1));
+      [9,13].forEach(i=>{s+=`<circle cx="${X(i)}" cy="${Y(up?C[i][2]:C[i][2])}" r="5" fill="none" stroke="${ink}" opacity="${op(1)}"/>`});
+      [1,2].forEach(i=>{s+=`<circle cx="${X(i)}" cy="${Y(C[i][1])}" r="5" fill="none" stroke="${ink}" opacity="${op(1)}"/>`});
+    }
+    // displacement highlight
+    if(on(3)) s+=`<rect x="${X(17)-sp*.55}" y="${pt-6}" width="${sp*2.1}" height="${hgt-pt-pb+6}" rx="6" fill="var(--acc-soft)" opacity="${cur(3)?1:.5}"/>`;
+    // FVG
+    if(on(5)) s+=`<rect x="${X(17)-sp/2}" y="${Math.min(Y(LV.fT),Y(LV.fB))}" width="${(on(6)?X(23):w-pr)-X(17)+sp/2}" height="${Math.abs(Y(LV.fB)-Y(LV.fT))}" fill="${up?"var(--bull-soft)":"var(--bear-soft)"}" stroke="${up?bull:bear}" opacity="${op(5)}"/>`+(on(6)?"":lab((Y(LV.fT)+Y(LV.fB))/2,"FVG",up?bull:bear,op(5)));
+    // position tool
+    if(on(6)){
+      const x0=X(21)-sp/2,x1=X(29)+sp/2;
+      s+=`<rect x="${x0}" y="${Math.min(Y(LV.entry),Y(LV.tp))}" width="${x1-x0}" height="${Math.abs(Y(LV.tp)-Y(LV.entry))}" fill="var(--bull-soft)" opacity="${op(6)}"/>`;
+      s+=`<rect x="${x0}" y="${Math.min(Y(LV.entry),Y(LV.stop))}" width="${x1-x0}" height="${Math.abs(Y(LV.stop)-Y(LV.entry))}" fill="var(--bear-soft)" opacity="${op(6)}"/>`;
+      s+=`<line x1="${x0}" x2="${w-pr}" y1="${Y(LV.entry)}" y2="${Y(LV.entry)}" stroke="${acc}" stroke-width="2"/>`+lab(Y(LV.entry),"შესვლა",acc);
+      s+=`<line x1="${x0}" x2="${w-pr}" y1="${Y(LV.stop)}" y2="${Y(LV.stop)}" stroke="${bear}" stroke-width="1.5"/>`+lab(Y(LV.stop),"სტოპი (−1R)",bear);
+      s+=`<text x="${x0+6}" y="${(Y(LV.entry)+Y(LV.tp))/2}" font-size="13" font-weight="700" font-family="var(--mono)" fill="${bull}" opacity="${op(6)}">+2R</text>`;
+      s+=`<text x="${x0+6}" y="${(Y(LV.entry)+Y(LV.stop))/2+4}" font-size="13" font-weight="700" font-family="var(--mono)" fill="${bear}" opacity="${op(6)}">−1R</text>`;
+    }
+    if(on(7)){
+      s+=`<line x1="${X(21)}" x2="${w-pr}" y1="${Y(LV.tp1)}" y2="${Y(LV.tp1)}" stroke="${bull}" stroke-dasharray="3 3"/>`+lab(Y(LV.tp1),"TP1 (+1R) → BE",bull);
+      s+=`<circle cx="${X(25)}" cy="${Y(LV.tp1)}" r="6" fill="${bull}"/><circle cx="${X(29)}" cy="${Y(LV.tp)}" r="6" fill="${bull}"/>`;
+    }
+    // candles
+    C.forEach((c0,i)=>{ if(i>st.upto) return; const c=cdl(c0), g=c[3]>=c[0], col=g?bull:bear, bw=sp*.62;
+      const t=Y(Math.max(c0[0],c0[3])), b=Y(Math.min(c0[0],c0[3]));
+      const top=Math.min(t,b), bot=Math.max(t,b);
+      const fresh = (step>0 && i>S[step-1].upto) ? 1 : (i>st.upto-1?1:.92);
+      s+=`<line x1="${X(i)}" x2="${X(i)}" y1="${Y(c0[1])}" y2="${Y(c0[2])}" stroke="${col}" stroke-width="1.6" opacity="${fresh}"/><rect x="${X(i)-bw/2}" y="${top}" width="${bw}" height="${Math.max(1.5,bot-top)}" rx="1" fill="${col}" opacity="${fresh}"/>`; });
+    // sweep marker
+    if(on(2)){ const yy=Y(LV.sweep); s+=`<circle cx="${X(16)}" cy="${yy}" r="11" fill="none" stroke="${bear}" stroke-width="2.5" opacity="${op(2)}"/><text x="${X(16)}" y="${up?yy+28:yy-18}" text-anchor="middle" font-size="12.5" font-weight="700" font-family="var(--font)" fill="${bear}" opacity="${op(2)}">Sweep</text>`; }
+    // MSS
+    if(on(4)){ s+=`<line x1="${X(11)}" x2="${X(18)+sp/2}" y1="${Y(LV.mss)}" y2="${Y(LV.mss)}" stroke="${up?bull:bear}" stroke-width="2.5" opacity="${op(4)}"/><text x="${X(11)}" y="${up?Y(LV.mss)-8:Y(LV.mss)+18}" font-size="12.5" font-weight="700" font-family="var(--font)" fill="${up?bull:bear}" opacity="${op(4)}">MSS ${up?"▲":"▼"}</text>`; }
+    if(on(3)) s+=`<text x="${X(17.5)}" y="${up?pt-12:hgt-4}" text-anchor="middle" font-size="12" font-weight="700" font-family="var(--font)" fill="${acc}" opacity="${cur(3)?1:.6}">Displacement</text>`;
+    $("#anSvg").innerHTML=s+"</svg>";
+    $("#anNo").textContent=`ნაბიჯი ${step+1} / ${S.length}`;
+    $("#anTtl").textContent=W(st.t);
+    $("#anWhat").innerHTML=W(st.w);
+    $("#anLook").innerHTML="👁 რას ეძებ ჩარტზე: "+W(st.k);
+    $("#anWhy").textContent=st.y;
+    $("#anPrev").disabled=step===0; $("#anNext").textContent=step===S.length-1?"↺ თავიდან":"შემდეგი ▶";
+    $("#anDots").innerHTML=S.map((x,i)=>`<button type="button" ${i===step?'aria-current="step"':""} class="${i<step?"done":""}" aria-label="ნაბიჯი ${i+1}" data-i="${i}">${i+1}</button>`).join("");
+  }
+  function go(i){step=(i+S.length)%S.length;draw()}
+  function stop(){if(timer){clearInterval(timer);timer=null;$("#anPlay").textContent="▶ ავტომატურად"}}
+  $("#anNext").onclick=()=>{stop();go(step===S.length-1?0:step+1)};
+  $("#anPrev").onclick=()=>{stop();if(step>0)go(step-1)};
+  $("#anDots").addEventListener("click",e=>{const b=e.target.closest("[data-i]");if(b){stop();go(+b.dataset.i)}});
+  $("#anPlay").onclick=()=>{ if(timer){stop();return} $("#anPlay").textContent="⏸ პაუზა"; if(step===S.length-1)go(0); timer=setInterval(()=>{ if(step>=S.length-1){stop();return} go(step+1)},4200)};
+  const setD=d=>{dir=d;$("#anL").setAttribute("aria-pressed",String(d===1));$("#anS").setAttribute("aria-pressed",String(d===-1));draw()};
+  $("#anL").onclick=()=>setD(1); $("#anS").onclick=()=>setD(-1);
+  draw();
+})();
+
+/* ---------- won vs lost R bars ---------- */
+(function(){
+  const D=[["A · ბაზა",154.8,152.5],["D · + 1H FVG",86.8,79.5],["F · bias-ის გარეშე",824.8,899.2]];
+  const mx=899.2;
+  $("#rbars").innerHTML=D.map(([n,w,l])=>`<div class="rbar"><span><b>${n}</b><br><span class="sub num">${(w-l>0?"+":"")+(w-l).toFixed(1)}R</span></span><div class="track"><div class="b" style="width:${w/mx*100}%;background:var(--bull)">+${w.toFixed(0)}R</div><div class="b" style="width:${l/mx*100}%;background:var(--bear)">−${l.toFixed(0)}R</div></div></div>`).join("");
 })();
 
 /* ---------- boot ---------- */
