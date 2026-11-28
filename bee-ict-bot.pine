@@ -254,6 +254,7 @@ place(bool isLong, float e, float s, float tgt, int q) =>
     string id = isLong ? "L" : "S"
     float r = math.abs(e - s)
     float tp1 = isLong ? e + r * tp1R : e - r * tp1R
+    strategy.cancel(isLong ? "S" : "L")  // only one pending order at a time
     strategy.entry(id, isLong ? strategy.long : strategy.short, qty = q, limit = entryMode == "FVG ლიმიტი" ? e : na)
     if usePart and q >= 2
         strategy.exit(id + "-TP1", id, qty_percent = 50, limit = tp1, stop = s, comment_profit = "TP1", comment_loss = "SL")
